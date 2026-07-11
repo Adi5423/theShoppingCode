@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  SHOPKEEPER
+  ADMIN
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  READY_FOR_PICKUP
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  name      String?
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shop      Shop?
+  orders    Order[]
+}
+
+model Shop {
+  id        String   @id @default(uuid())
+  ownerId   String   @unique
+  name      String
+  address   String
+  lat       Float    
+  lng       Float    
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  owner     User        @relation(fields: [ownerId], references: [id])
+  inventory Inventory[]
+  orders    Order[]
+}
+
+// UPDATED: Now supports Open Food Facts data & Variants natively
+model CatalogItem {
+  id          String   @id @default(uuid())
+  barcode     String?  @unique 
+  name        String   // e.g., "Lays Magic Masala"
+  brand       String?  // e.g., "Lay's"
+  variant     String?  // e.g., "50g", "Blue Flavor", "Family Pack"
+  category    String?  // e.g., "Snacks"
+  imageUrl    String?
+  
+  inventory   Inventory[]
+}
+
+// UPDATED: Added customDescription so shopkeepers can add their own notes
+model Inventory {
+  id                String      @id @default(uuid())
+  shopId            String
+  itemId            String
+  price             Float       // The specific price this shop charges
+  customDescription String?     // User requested: Extra details from the shopkeeper
+  status            StockStatus @default(IN_STOCK)
+  updatedAt         DateTime    @updatedAt
+  
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  item        CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+
+  @@unique([shopId, itemId]) 
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  customerId  String
+  shopId      String
+  status      OrderStatus @default(PENDING)
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  
+  customer    User        @relation(fields: [customerId], references: [id])
+  shop        Shop        @relation(fields: [shopId], references: [id])
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id          String    @id @default(uuid())
+  orderId     String
+  inventoryId String
+  quantity    Int
+  price       Float     // Locks the price at the time of purchase!
+  
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+}
