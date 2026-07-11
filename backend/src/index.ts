@@ -7,6 +7,8 @@ import pg from 'pg';
 
 // Import pipelines/insiders
 import authRoutes from './routes/auth.routes.js';
+import shopRoutes from './routes/shop.routes.js';
+import catalogRoutes from './routes/catalog.routes.js';
 
 // Load environment configurations
 dotenv.config();
@@ -37,6 +39,8 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // Mount core API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/shops', shopRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 // Start listening for inbound incoming traffic
 app.listen(PORT, () => {
