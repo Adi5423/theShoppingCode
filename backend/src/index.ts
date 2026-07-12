@@ -9,6 +9,8 @@ import pg from 'pg';
 import authRoutes from './routes/auth.routes.js';
 import shopRoutes from './routes/shop.routes.js';
 import catalogRoutes from './routes/catalog.routes.js';
+import inventoryRoutes from './routes/inventory.routes.js';
+import discoveryRoutes from './routes/discovery.routes.js';
 
 // Load environment configurations
 dotenv.config();
@@ -41,6 +43,8 @@ app.get('/health', async (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/discovery', discoveryRoutes);
 
 // Start listening for inbound incoming traffic
 app.listen(PORT, () => {
