@@ -11,6 +11,7 @@ import shopRoutes from './routes/shop.routes.js';
 import catalogRoutes from './routes/catalog.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
+import orderRoutes from './routes/order.routes.js';
 
 // Load environment configurations
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/shops', shopRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/discovery', discoveryRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Start listening for inbound incoming traffic
 app.listen(PORT, () => {

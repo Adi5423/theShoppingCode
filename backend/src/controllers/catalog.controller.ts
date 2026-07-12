@@ -8,21 +8,41 @@ export const searchCatalog = async (req: Request, res: Response): Promise<void> 
     try {
         // 1. Fast path: Exact barcode match
         if (barcode) {
-            const item = await prisma.catalogItem.findUnique({
+            let item = await prisma.catalogItem.findUnique({
                 where: { barcode: String(barcode) }
             });
+
+            // 2. Self-Learning: If not in our DB, ask Open Food Facts
+            if (!item) {
+                const offResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+                const offData = await offResponse.json();
+
+                if (offData.status === 1) {
+                    const product = offData.product;
+                    // Save this new item to our database permanently
+                    item = await prisma.catalogItem.create({
+                        data: {
+                            barcode: String(barcode),
+                            name: product.product_name || 'Unknown Product',
+                            brand: product.brands?.split(',')[0] || 'Unknown Brand',
+                            variant: product.quantity || null,
+                            category: product.categories?.split(',')[0] || null,
+                            imageUrl: product.image_url || null
+                        }
+                    });
+                }
+            }
+
             res.status(200).json({ items: item ? [item] : [] });
             return;
         }
 
-        let items: CatalogItem[] = [];
-        // 2. Fallback: Fuzzy text search for manual entry
+        // 3. Fallback: Fuzzy text search for customers
+        let items: any[] = [];
         if (query) {
             items = await prisma.catalogItem.findMany({
-                where: {
-                    name: { contains: String(query), mode: 'insensitive' }
-                },
-                take: 20 // Pagination boundary for performance
+                where: { name: { contains: String(query), mode: 'insensitive' } },
+                take: 20
             });
         }
 
