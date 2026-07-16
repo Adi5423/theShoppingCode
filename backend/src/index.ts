@@ -12,6 +12,7 @@ import catalogRoutes from './routes/catalog.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import { globalErrorHandler } from './middleware/error.middleware.js';
 
 // Load environment configurations
 dotenv.config();
@@ -47,6 +48,10 @@ app.use('/api/catalog', catalogRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/discovery', discoveryRoutes);
 app.use('/api/orders', orderRoutes);
+
+
+//Global error handler must be the last middleware
+app.use(globalErrorHandler);
 
 // Start listening for inbound incoming traffic
 app.listen(PORT, () => {
