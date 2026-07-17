@@ -1,42 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { theme } from '../../shared/theme';
 import { apiClient } from '../../shared/api/client';
 import { useAuthStore } from '../../shared/store/authStore';
 
 export const AuthScreen = () => {
+    const [isLogin, setIsLogin] = useState(true);
     const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
-    const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
-    const [loading, setLoading] = useState(false);
-
-    // For dev: Let's default to a CUSTOMER login, you can add a toggle later if needed
+    const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
     const [role, setRole] = useState<'CUSTOMER' | 'SHOPKEEPER'>('CUSTOMER');
+    const [loading, setLoading] = useState(false);
 
     const signIn = useAuthStore(state => state.signIn);
 
-    const handleRequestOtp = async () => {
-        setLoading(true);
-        try {
-            await apiClient.post('/auth/request-otp', { phone });
-            setStep('OTP');
-        } catch (error: any) {
-            // Now we can actually see WHY it failed in your terminal
-            console.error("OTP Request failed:", error.message);
-            if (error.response) console.error("Server Data:", error.response.data);
-        } finally {
-            setLoading(false);
+    const handleSubmit = async () => {
+        // Frontend Guardrail: Basic 10 digit check
+        if (phone.length !== 10) {
+            Alert.alert("Error", "Please enter a valid 10-digit phone number.");
+            return;
         }
-    };
+        if (password.length < 6) {
+            Alert.alert("Error", "Password must be at least 6 characters.");
+            return;
+        }
 
-    const handleVerifyOtp = async () => {
         setLoading(true);
+        const formattedPhone = `+91${phone}`;
+
         try {
-            const res = await apiClient.post('/auth/verify-otp', { phone, otp, name: 'New User', role });
-            await signIn(res.data.token, res.data.user.role);
+            if (isLogin) {
+                const res = await apiClient.post('/auth/login', { phone: formattedPhone, password });
+                await signIn(res.data.token, res.data.user.role);
+            } else {
+                if (!name) return Alert.alert("Error", "Name is required for registration.");
+                const res = await apiClient.post('/auth/register', {
+                    phone: formattedPhone,
+                    password,
+                    name,
+                    role,
+                    otp: '123456' // Keep our dev bypass for the backend requirement
+                });
+                await signIn(res.data.token, res.data.user.role);
+            }
         } catch (error: any) {
-            // Display the clean error to the user!
-            alert(error.message);
+            Alert.alert("Authentication Failed", error.message);
         } finally {
             setLoading(false);
         }
@@ -45,41 +53,35 @@ export const AuthScreen = () => {
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
             <View style={styles.card}>
-                <Text style={styles.title}>{step === 'PHONE' ? 'Welcome Back' : 'Enter OTP'}</Text>
-                <Text style={styles.subtitle}>
-                    {step === 'PHONE' ? 'Enter your phone number to continue' : `Code sent to ${phone}`}
-                </Text>
+                <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
 
-                {step === 'PHONE' ? (
-                    <TextInput
-                        style={styles.input}
-                        placeholder="+91 9876543210" // Guide them to use the country code
-                        keyboardType="phone-pad"
-                        value={phone}
-                        onChangeText={setPhone}
-                        maxLength={13} // Enforces +91 plus 10 digits
-                        placeholderTextColor={theme.colors.textLight}
-                    />
-                ) :
+                {!isLogin && (
+                    <>
+                        <TextInput style={styles.input} placeholder="Full Name" value={name} onChangeText={setName} placeholderTextColor={theme.colors.textLight} />
+                        <View style={styles.roleToggle}>
+                            <TouchableOpacity style={[styles.roleBtn, role === 'CUSTOMER' && styles.roleBtnActive]} onPress={() => setRole('CUSTOMER')}>
+                                <Text style={[styles.roleText, role === 'CUSTOMER' && styles.roleTextActive]}>Shopper</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.roleBtn, role === 'SHOPKEEPER' && styles.roleBtnActive]} onPress={() => setRole('SHOPKEEPER')}>
+                                <Text style={[styles.roleText, role === 'SHOPKEEPER' && styles.roleTextActive]}>Shopkeeper</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </>
+                )}
 
-                    (
-                        <TextInput
-                            style={styles.input}
-                            placeholder="123456"
-                            keyboardType="number-pad"
-                            value={otp}
-                            onChangeText={setOtp}
-                            maxLength={6}
-                            placeholderTextColor={theme.colors.textLight}
-                        />
-                    )}
+                <View style={styles.phoneInputContainer}>
+                    <Text style={styles.countryCode}>+91</Text>
+                    <TextInput style={[styles.input, styles.phoneInput]} placeholder="Phone Number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} maxLength={10} placeholderTextColor={theme.colors.textLight} />
+                </View>
 
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={step === 'PHONE' ? handleRequestOtp : handleVerifyOtp}
-                    disabled={loading}
-                >
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Continue</Text>}
+                <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor={theme.colors.textLight} />
+
+                <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Register'}</Text>}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchTextContainer}>
+                    <Text style={styles.switchText}>{isLogin ? "Don't have an account? Register" : "Already have an account? Login"}</Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -88,10 +90,19 @@ export const AuthScreen = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', padding: theme.spacing.lg },
-    card: { backgroundColor: theme.colors.surface, padding: theme.spacing.xl, borderRadius: theme.radius.lg, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: theme.spacing.sm },
-    subtitle: { fontSize: 14, color: theme.colors.textLight, marginBottom: theme.spacing.lg },
-    input: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, padding: theme.spacing.md, fontSize: 16, color: theme.colors.text, marginBottom: theme.spacing.lg },
-    button: { backgroundColor: theme.colors.primary, padding: theme.spacing.md, borderRadius: theme.radius.md, alignItems: 'center' },
-    buttonText: { color: theme.colors.surface, fontSize: 16, fontWeight: 'bold' }
+    card: { backgroundColor: theme.colors.surface, padding: theme.spacing.xl, borderRadius: theme.radius.lg, elevation: 2 },
+    title: { fontSize: 24, fontWeight: 'bold', color: theme.colors.text, marginBottom: theme.spacing.lg, textAlign: 'center' },
+    input: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, padding: theme.spacing.md, fontSize: 16, color: theme.colors.text, marginBottom: theme.spacing.md },
+    phoneInputContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.md },
+    countryCode: { fontSize: 16, fontWeight: 'bold', color: theme.colors.text, paddingHorizontal: theme.spacing.md, backgroundColor: theme.colors.border, paddingVertical: 14, borderRadius: theme.radius.md, marginRight: theme.spacing.sm },
+    phoneInput: { flex: 1, marginBottom: 0 },
+    roleToggle: { flexDirection: 'row', marginBottom: theme.spacing.md, backgroundColor: theme.colors.background, borderRadius: theme.radius.md, padding: 4 },
+    roleBtn: { flex: 1, padding: theme.spacing.sm, alignItems: 'center', borderRadius: theme.radius.sm },
+    roleBtnActive: { backgroundColor: theme.colors.primary },
+    roleText: { color: theme.colors.textLight, fontWeight: 'bold' },
+    roleTextActive: { color: '#fff' },
+    button: { backgroundColor: theme.colors.primary, padding: theme.spacing.md, borderRadius: theme.radius.md, alignItems: 'center', marginTop: theme.spacing.sm },
+    buttonText: { color: theme.colors.surface, fontSize: 16, fontWeight: 'bold' },
+    switchTextContainer: { marginTop: theme.spacing.lg, alignItems: 'center' },
+    switchText: { color: theme.colors.primary, fontWeight: '600' }
 });
