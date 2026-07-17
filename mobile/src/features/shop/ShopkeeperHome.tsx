@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
 
     cameraContainer: { flex: 1, position: 'relative' },
     camera: { flex: 1 },
-    overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+    overlay: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
     scanBox: { width: 250, height: 150, borderWidth: 2, borderColor: '#fff', borderRadius: radius.md, backgroundColor: 'transparent' },
     scanText: { color: '#fff', marginTop: spacing.lg, fontSize: 16, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full },
 
