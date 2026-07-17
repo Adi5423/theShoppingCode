@@ -54,15 +54,22 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     try {
         const user = await prisma.user.findUnique({ where: { phone } });
-        if (!user || !user.password) {
-            res.status(401).json({ error: "Invalid phone number or password." });
+
+        // 1. Explicitly tell them if the account doesn't exist
+        if (!user) {
+            res.status(404).json({ error: "No account found with this number. Please register first." });
             return;
         }
 
-        // Security: Compare submitted password against the DB hash
+        if (!user.password) {
+            res.status(400).json({ error: "Please use 'Forgot Password' to set up a new secure password." });
+            return;
+        }
+
+        // 2. Explicitly tell them if the password is wrong
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            res.status(401).json({ error: "Invalid phone number or password." });
+            res.status(401).json({ error: "Incorrect password. Please try again." });
             return;
         }
 
