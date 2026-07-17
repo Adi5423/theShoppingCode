@@ -1,6 +1,8 @@
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
@@ -19,30 +21,27 @@ dotenv.config();
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
-
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
 // Globally instantiated prisma instance for our service tier
 export const prisma = new PrismaClient({ adapter });
 
-// Production-ready Express middleware configurations
+// Security Middleware: HTTP Headers
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Base healthcheck routing to ensure runtime is active
-app.get('/health', async (req: Request, res: Response) => {
-    try {
-        // Ping database to guarantee active connection pipeline
-        await prisma.$queryRaw`SELECT 1`;
-        res.status(200).json({ status: "healthy", database: "connected" });
-    } catch (error) {
-        res.status(500).json({ status: "unhealthy", error: (error as Error).message });
-    }
+// Security Middleware: Bruteforce Protection for Auth routes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 login/register requests per window
+    message: { error: "Too many login attempts. Please try again after 15 minutes." }
 });
 
 // Mount core API routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes); // Protected by limiter
 app.use('/api/shops', shopRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/inventory', inventoryRoutes);

@@ -1,8 +1,8 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// We will replace this with a real HTTPS public URL in the next step
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://swift-jokes-add.loca.lt/api';
+// Point directly to the live Render API
+const BASE_URL = 'https://theshoppingcode.onrender.com/api';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
