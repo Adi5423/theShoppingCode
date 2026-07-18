@@ -6,6 +6,10 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useAuthStore } from '../shared/store/authStore';
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { ShopkeeperHome } from '../features/shop/ShopkeeperHome';
+import { ShopSetupScreen } from '../features/shop/ShopSetupScreen';
+import { apiClient } from '../shared/api/client';
+import { ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -42,6 +46,33 @@ const ShopkeeperTabs = () => (
     </Tab.Navigator>
 );
 
+// The Gatekeeper Component
+const ShopkeeperRoot = () => {
+    const [hasShop, setHasShop] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const checkShop = async () => {
+            try {
+                await apiClient.get('/shop/me');
+                setHasShop(true);
+            } catch (error) {
+                setHasShop(false); // 404 means no shop exists
+            }
+        };
+        checkShop();
+    }, []);
+
+    if (hasShop === null) {
+        return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" /></View>;
+    }
+
+    if (!hasShop) {
+        return <ShopSetupScreen onComplete={() => setHasShop(true)} />;
+    }
+
+    return <ShopkeeperTabs />;
+};
+
 export const AppNavigator = () => {
     const { token, role } = useAuthStore();
 
@@ -51,7 +82,8 @@ export const AppNavigator = () => {
                 {token === null ? (
                     <Stack.Screen name="Auth" component={AuthScreen} />
                 ) : role === 'SHOPKEEPER' ? (
-                    <Stack.Screen name="ShopkeeperMain" component={ShopkeeperTabs} />
+                    // Replaced ShopkeeperTabs with the Gatekeeper
+                    <Stack.Screen name="ShopkeeperMain" component={ShopkeeperRoot} />
                 ) : (
                     <Stack.Screen name="CustomerMain" component={CustomerTabs} />
                 )}
