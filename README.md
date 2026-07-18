@@ -1,39 +1,68 @@
-# 🚀 Hyperlocal Marketplace App
+# Hyperlocal Marketplace Monorepo
 
-A modern, full-stack monorepo application for hyperlocal shopping. This project connects customers with local shopkeepers, providing real-time store inventory catalogs, custom pricing, order placement, and seamless order pickup/delivery pipelines.
-
----
-
-## 📌 Project Goal
-
-The primary goal of this application is to digitize and empower traditional local brick-and-mortar stores. By establishing a hyperlocal digital marketplace, the system:
-- Enables **customers** to discover nearby shops, browse localized pricing, and place orders for quick pickup/delivery.
-- Empowers **shopkeepers** to list custom pricing and descriptions on catalog items and manage inbound orders.
-- Optimizes **local shopping** by bridging the convenience of digital search with the immediacy of physical local pickup.
+A production-grade hyperlocal commerce application designed to digitize and connect local brick-and-mortar stores with customers. The platform supports real-time geolocated item search, on-demand catalog item resolution (self-learning barcode lookup), local price management, role-based navigation flow, and atomic transactional ordering.
 
 ---
 
-## 🛠️ System Architecture & Tech Stack
-
-The project is structured as a monorepo consisting of two primary components:
-
-### 1. Backend ([/backend](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend))
-*   **Runtime**: Node.js (v18+) with modern EcmaScript Modules (ESM) support.
-*   **Language**: TypeScript.
-*   **Framework**: Express.js.
-*   **ORM**: Prisma client configured with a native PostgreSQL pool adapter.
-*   **Database**: PostgreSQL (compatible with Neon serverless, local PostgreSQL, AWS RDS, etc.).
-*   **Authentication**: Passwordless OTP flow with JWT (JSON Web Tokens).
-
-### 2. Mobile Frontend ([/mobile](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/mobile))
-*   **Framework**: React Native powered by Expo (SDK 57).
-*   **Language**: TypeScript.
-*   **Navigation**: React Navigation (`@react-navigation/native` & `@react-navigation/native-stack`).
-*   **Bundler**: Metro Bundler.
+## Table of Contents
+1. [System Architecture](#system-architecture)
+2. [Monorepo Folder Walkthrough](#monorepo-folder-walkthrough)
+3. [Database Design & Schema](#database-design--schema)
+4. [Functional Implementation Guides](#functional-implementation-guides)
+    - [1. JWT Authentication & Encryption](#1-jwt-authentication--encryption)
+    - [2. Merchant Onboarding & Geofencing Configuration](#2-merchant-onboarding--geofencing-configuration)
+    - [3. Barcode Resolution & Self-Learning Catalog](#3-barcode-resolution--self-learning-catalog)
+    - [4. Multi-Tenant Inventory Customizations](#4-multi-tenant-inventory-customizations)
+    - [5. Transactional Order Pipeline & Price Isolation](#5-transactional-order-pipeline--price-isolation)
+    - [6. Customer Discovery API](#6-customer-discovery-api)
+    - [7. Mobile Navigation Gatekeeper Flow](#7-mobile-navigation-gatekeeper-flow)
+5. [API Reference Manual](#api-reference-manual)
+6. [Local Environment Setup](#local-environment-setup)
 
 ---
 
-## 📂 Codebase & Folder Directory Walkthrough
+## System Architecture
+
+The project is structured as a TypeScript monorepo separated into a robust backend service and an Expo-based cross-platform mobile frontend.
+
+```mermaid
+graph TD
+    subgraph Client ["Mobile Client (Expo SDK 57)"]
+        RN[React Native UI]
+        Nav[AppNavigator - Navigation Gatekeeper]
+        Store[Zustand Store + SecureStore]
+    end
+
+    subgraph Server ["Backend Service (Express.js)"]
+        Auth[Auth Middleware]
+        Route[Express Router]
+        Ctrl[Controllers]
+    end
+
+    subgraph Data ["Data Layer"]
+        Prisma[Prisma Client / Pg Adapter]
+        DB[(PostgreSQL Database)]
+        OFF[Open Food Facts API]
+    end
+
+    RN -->|HTTP Requests| Route
+    Nav -->|Auth Checks /api/shop/me| Route
+    Route --> Auth
+    Auth --> Ctrl
+    Ctrl --> Prisma
+    Prisma --> DB
+    Ctrl -.->|Self-learning barcode query| OFF
+```
+
+### Key Technical Specs
+* **Backend Runtime**: Node.js v18+ with ES Modules (`type: "module"`).
+* **Database**: PostgreSQL paired with Prisma Client using a native PostgreSQL pool adapter (`@prisma/adapter-pg`).
+* **Mobile Frontend**: Expo (SDK 57) using React Native, TypeScript, React Navigation v7, and Zustand for state persistence.
+* **Security & Reliability**: Helmet headers, CORS policies, rate limiting protection, JWT-based authentication, and Bcrypt cryptography.
+
+---
+
+## Monorepo Folder Walkthrough
 
 ```text
 hyperlocal-app/
@@ -42,228 +71,523 @@ hyperlocal-app/
 │   │   └── schema.prisma        # Database schema models (PostgreSQL)
 │   ├── src/
 │   │   ├── controllers/
-│   │   │   ├── auth.controller.ts      # OTP Request/Verify and User Upsertion logic
-│   │   │   ├── catalog.controller.ts   # Global product catalog search & registration
-│   │   │   ├── discovery.controller.ts # Customer public item discovery with Progressive Radius Search
-│   │   │   ├── inventory.controller.ts # Shopkeeper specific inventory catalog management
-│   │   │   └── shop.controller.ts      # Shop registration and location metadata management
+│   │   │   ├── auth.controller.ts      # Hashed registration & Login credentials
+│   │   │   ├── catalog.controller.ts   # Product catalog search & self-learning integration
+│   │   │   ├── discovery.controller.ts # Customer public inventory locator
+│   │   │   ├── inventory.controller.ts # Shopkeeper local product catalog and description builder
+│   │   │   ├── order.controller.ts     # Atomic ordering with price capture
+│   │   │   └── shop.controller.ts      # Store profile setup and hours management
 │   │   ├── middleware/
-│   │   │   └── auth.middleware.ts      # JWT Authenticated Route protection & req extension
+│   │   │   ├── auth.middleware.ts      # JWT Validation & role verification middleware
+│   │   │   └── error.middleware.ts     # Global request error boundaries
 │   │   ├── routes/
-│   │   │   ├── auth.routes.ts          # Express auth endpoints
-│   │   │   ├── catalog.routes.ts       # Express catalog endpoints
-│   │   │   ├── discovery.routes.ts     # Express customer search discovery endpoints
-│   │   │   ├── inventory.routes.ts     # Express shopkeeper inventory endpoints
-│   │   │   └── shop.routes.ts          # Express shop registration endpoints
-│   │   └── index.ts                    # Core Server setup, Prisma setup, Healthcheck, and router mounting
-│   ├── .env.example                    # Template environment variables
-│   ├── package.json                    # Backend dependencies and scripts
-│   └── tsconfig.json                   # TypeScript compilation config
+│   │   │   ├── auth.routes.ts          # Express auth routing (Register/Login)
+│   │   │   ├── catalog.routes.ts       # Global master product catalog endpoints
+│   │   │   ├── discovery.routes.ts     # Unprotected customer search endpoints
+│   │   │   ├── inventory.routes.ts     # Merchant stock inventory updates
+│   │   │   ├── order.routes.ts         # Customer ordering endpoints
+│   │   │   └── shop.routes.ts          # Shop profile retrieval & setup
+│   │   └── index.ts                    # Server initialization, Pg pools, and routing
+│   ├── .env.example                    # Sample environment variables
+│   ├── package.json                    # Backend scripts & runtime modules
+│   └── tsconfig.json                   # TypeScript build target configurations
 │
 ├── mobile/
-│   ├── assets/                         # Graphic assets (Splash, Icon, etc.)
-│   ├── App.tsx                         # React Native app entry component
-│   ├── app.json                        # Expo configurations
-│   ├── index.ts                        # Expo entry point script
-│   ├── package.json                    # Mobile dependencies and scripts
-│   └── tsconfig.json                   # TypeScript compilation config
-│
-└── .gitignore                          # Git ignore rules for the entire project workspace
-```
-
-### Key Files in Focus:
--   [backend/prisma/schema.prisma](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/prisma/schema.prisma): Database schema definition containing all primary enums and models.
--   [backend/src/index.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/index.ts): Main application server setup using PostgreSQL connections pool and mounting api sub-routers.
--   [backend/src/controllers/auth.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/auth.controller.ts): Implements passwordless OTP login and verification with automatic user upsertion.
--   [backend/src/controllers/shop.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/shop.controller.ts): Handles store profile creation with latitude/longitude validation for geofencing.
--   [backend/src/controllers/catalog.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/catalog.controller.ts): Implements exact barcode matches (O(1)) and case-insensitive partial name searches for system-wide cataloging.
--   [backend/src/controllers/inventory.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/inventory.controller.ts): Allows shopkeepers to register items from the master catalog to their store inventory with local custom descriptions, stock level flags, and custom shop prices.
--   [backend/src/controllers/discovery.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/discovery.controller.ts): The geospatial search hub. Implements distance calculations and progressive radius searches.
-
----
-
-## 🗄️ Database Schema & Data Models
-
-The Prisma schema is optimized for multi-tenant shops, item catalog preservation, and order transaction isolation. Refer to [schema.prisma](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/prisma/schema.prisma) for exact types:
-
-### Enums
--   `Role`: `CUSTOMER`, `SHOPKEEPER`, `ADMIN` (Role-based access controls).
--   `StockStatus`: `IN_STOCK`, `LOW_STOCK`, `OUT_OF_STOCK` (Inventory tracking).
--   `OrderStatus`: `PENDING`, `ACCEPTED`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED` (Order state pipeline).
-
-### Models & Relations
-1.  **User**: Represents any actor in the marketplace.
-    -   Has a one-to-one relation with `Shop` (if the role is `SHOPKEEPER`).
-    -   Has a one-to-many relation with `Order` (as a customer).
-2.  **Shop**: Stores shopkeeper profiles, including location markers.
-    -   Geolocated using Float attributes (`lat`, `lng`).
-    -   Has a one-to-many relation with `Inventory` items.
-    -   Has a one-to-many relation with `Order` records received by the shop.
-3.  **CatalogItem**: A standardized directory of products.
-    -   Supports attributes like barcode, brand, variant (e.g. weight, volume), and image links.
-4.  **Inventory**: Relates a product to a specific store's pricing/stock catalog.
-    -   Key attributes: `price`, `customDescription` (shopkeeper notes), and `status`.
-    -   Enforces a composite unique key `[shopId, itemId]` to prevent duplicate catalog items inside the same shop.
-5.  **Order**: Tracks transactional purchase header logs.
-    -   Links customers and shops with total amounts and status tracking.
-6.  **OrderItem**: Individual order line items.
-    -   **Important Design Choice**: Captures a snapshot of the item's `price` at checkout time to lock in historical prices.
-
----
-
-## 📡 API Reference
-
-All requests must supply JSON payloads inside the request body if they use `POST` or `PUT` methods.
-
-### Authentication Endpoints
-
-| Route | Method | Authorization | Description / Payload |
-| :--- | :--- | :--- | :--- |
-| `/api/auth/request-otp` | `POST` | Public | Initiates OTP flow. Payload: `{ "phone": "string" }` |
-| `/api/auth/verify-otp` | `POST` | Public | Verifies OTP and logs in. Payload: `{ "phone": "string", "otp": "string", "name"?: "string", "role"?: "Role" }`. Returns JWT and user payload. |
-
-### Shop Management Endpoints
-
-| Route | Method | Authorization | Description / Payload |
-| :--- | :--- | :--- | :--- |
-| `/api/shops` | `POST` | Verified JWT (Shopkeeper Only) | Registers a new shop. Payload: `{ "name": "string", "address": "string", "lat": number/float, "lng": number/float }` |
-
-### Catalog Endpoints
-
-| Route | Method | Authorization | Description / Payload |
-| :--- | :--- | :--- | :--- |
-| `/api/catalog/search` | `GET` | Verified JWT | Searches the master catalog. Query parameters: `barcode` (exact match) OR `query` (fuzzy matching). |
-| `/api/catalog` | `POST` | Verified JWT | Adds an item to the global master catalog database. Payload: `{ "barcode"?: "string", "name": "string", "brand"?: "string", "variant"?: "string", "category"?: "string", "imageUrl"?: "string" }` |
-
-### Inventory Endpoints
-
-| Route | Method | Authorization | Description / Payload |
-| :--- | :--- | :--- | :--- |
-| `/api/inventory` | `POST` | Verified JWT (Shopkeeper Only) | Creates or updates (upserts) a shop's localized product. Payload: `{ "catalogItemId": "string", "price": number/float, "customDescription"?: "string", "status"?: "StockStatus" }` |
-
-### Customer Discovery Endpoints
-
-| Route | Method | Authorization | Description / Payload |
-| :--- | :--- | :--- | :--- |
-| `/api/discovery/search` | `GET` | Public | Hyperlocal item locator. Query parameters: `query` (name pattern), `customerLat` (float), `customerLng` (float). Returns items sorted by distance. |
-
----
-
-## ⚡ Setup Guide: Running on a New System
-
-Ensure you have the following prerequisites installed on your system:
--   **Node.js** (v18.x or v20.x recommended)
--   **PostgreSQL Database** (or a serverless Neon database connection string)
--   **Expo Go App** (installed on your physical iOS/Android phone to test the frontend, or configured simulator setups in Android Studio / Xcode)
-
----
-
-### Step 1: Clone the Codebase
-Navigate into the root of the project folder:
-```bash
-cd hyperlocal-app
+│   ├── assets/                         # Splash screen, logo, & static media assets
+│   ├── src/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   │   └── AuthScreen.tsx      # Unified Login/Register screen with theme toggle
+│   │   │   ├── customer/               # Customer search, map discovery screens
+│   │   │   └── shop/
+│   │   │       ├── ShopSetupScreen.tsx # Multi-field shop setup wizard
+│   │   │       └── ShopkeeperHome.tsx  # Camera-based barcode scanner & pricing page
+│   │   ├── navigation/
+│   │   │   └── AppNavigator.tsx        # Dynamic navigation router and gatekeeper
+│   │   └── shared/
+│   │       ├── api/
+│   │       │   └── client.ts           # Axios request wrapper with JWT interpolation
+│   │       ├── store/
+│   │       │   ├── authStore.ts        # Zustand auth state mapped to SecureStore
+│   │       │   └── themeStore.ts       # Zustand color schema store
+│   │       └── theme.ts                # Light & Dark color schemas and spacing tokens
+│   ├── App.tsx                         # React entry component mounting AppNavigator
+│   ├── app.json                        # Expo app metadata configuration
+│   ├── index.ts                        # Native entry script (registers App)
+│   ├── package.json                    # Native frontend dependencies & scripts
+│   └── tsconfig.json                   # TypeScript config for Expo compiler
+└── .gitignore                          # Monorepo git exclusion directives
 ```
 
 ---
 
-### Step 2: Database and Backend Setup
+## Database Design & Schema
 
-1.  **Navigate to the backend folder**:
-    ```bash
-    cd backend
-    ```
+The data tier is managed via Prisma in [backend/prisma/schema.prisma](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/prisma/schema.prisma). The layout is designed to prevent duplicate configurations, lock in historical pricing snapshots, and enable geolocation indexes.
 
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
+### Relational Mapping Model
 
-3.  **Setup Environment Variables**:
-    Copy the sample environment file to create a `.env` configuration:
-    ```bash
-    cp .env.example .env
-    ```
-    Open `.env` in your editor and configure your credentials:
-    ```ini
-    DATABASE_URL="postgresql://username:password@localhost:5432/hyperlocal_db?sslmode=prefer"
-    JWT_SECRET="your_secure_development_jwt_secret"
-    PORT=5000
-    ```
-
-4.  **Database Migration & Schema Push**:
-    Synchronize the database schema with your PostgreSQL instance:
-    ```bash
-    npx prisma db push
-    ```
-    *(Optional)* To generate or update the Prisma client manually:
-    ```bash
-    npx prisma generate
-    ```
-
-5.  **Start the Backend Development Server**:
-    ```bash
-    npm run dev
-    ```
-    The server will startup on port `5000`. You should see `[🚀 Server Matrix Engaged]: Running seamlessly on port 5000`.
-
-6.  **Verify Backend Health**:
-    In another terminal, run:
-    ```bash
-    curl http://localhost:5000/health
-    ```
-    You should receive a `200 OK` response with:
-    ```json
-    {
-      "status": "healthy",
-      "database": "connected"
+```mermaid
+erDiagram
+    User ||--o| Shop : "owns"
+    User ||--o{ Order : "places"
+    Shop ||--o{ Inventory : "stocks"
+    Shop ||--o{ Order : "receives"
+    CatalogItem ||--o{ Inventory : "cataloged-in"
+    Inventory ||--o{ OrderItem : "ordered-as"
+    Order ||--|{ OrderItem : "contains"
+    
+    User {
+        string id PK
+        string phone UNIQUE
+        string password
+        string name
+        Role role
     }
-    ```
+
+    Shop {
+        string id PK
+        string ownerId FK
+        string name
+        string category
+        string address
+        float latitude
+        float longitude
+        string upiId
+        string openTime
+        string closeTime
+    }
+
+    CatalogItem {
+        string id PK
+        string barcode UNIQUE
+        string name
+        string brand
+        string variant
+        string category
+        string imageUrl
+    }
+
+    Inventory {
+        string id PK
+        string shopId FK
+        string itemId FK
+        float price
+        string customDescription
+        StockStatus status
+    }
+
+    Order {
+        string id PK
+        string customerId FK
+        string shopId FK
+        OrderStatus status
+        float totalAmount
+        dateTime createdAt
+    }
+
+    OrderItem {
+        string id PK
+        string orderId FK
+        string inventoryId FK
+        int quantity
+        float price
+    }
+```
+
+### Key Architectural Choices:
+1. **Composite Unique Constraint (`[shopId, itemId]`)**: Located on the `Inventory` model. This structural rule ensures that a shopkeeper can never create duplicate inventory rows for the same catalog product.
+2. **Price Snapshot Pattern**: The `OrderItem` model copies the unit `price` of the item at the exact moment of order placement. This decouples completed transactions from subsequent price fluctuations made by shopkeepers.
+3. **Double Precision Lat/Lng Coordinates**: Stores explicit coordinates using floating-point attributes (`latitude`, `longitude`) in the `Shop` model to allow exact distance calculations.
 
 ---
 
-### Step 3: Frontend Setup (Mobile App)
+## Functional Implementation Guides
 
-1.  **Navigate to the mobile folder**:
-    Open a new terminal session and run:
-    ```bash
-    cd mobile
-    ```
+### 1. JWT Authentication & Encryption
+Authentication is implemented in [auth.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/auth.controller.ts).
+* **Indian Phone Validation**: Ensures all registering phone numbers match the standard `+91` code followed by exactly 10 digits (`/^\+91\d{10}$/`).
+* **Password Encryption**: All password credentials are salted and hashed using `bcryptjs` with a cost factor of 10.
+* **Token Issuance**: Generates cryptographically signed JWT tokens carrying user IDs and roles with a 30-day expiration window.
+* **Development OTP Bypass**: To simplify testing, a developer-friendly OTP verification code (`123456`) is hardcoded in the register endpoint.
 
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
+### 2. Merchant Onboarding & Geofencing Configuration
+When users register under the `SHOPKEEPER` role, they transition through a step-by-step onboarding layout.
+* **Fields Configured**: Enforces database capturing for payment information (UPI ID), business category (e.g. Grocery, Pharmacy), coordinates (latitude/longitude), and working hours (`openTime`, `closeTime`).
+* **Upsert Optimization**: The setup endpoint uses Prisma's `upsert` mechanism. If the shopkeeper profile exists, the backend executes an update; otherwise, it handles creation.
 
-3.  **Start the Expo Development Server (Metro)**:
-    ```bash
-    npm run start
-    ```
+### 3. Barcode Resolution & Self-Learning Catalog
+The catalog engine in [catalog.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/catalog.controller.ts) includes a self-learning loop to prevent manual catalog creation bottlenecks.
+1. The scanning terminal sends a barcode (EAN-13, EAN-8, UPC-A, UPC-E) to `/api/catalog/search`.
+2. The controller attempts a rapid local look-up.
+3. If missing, the controller fetches product details directly from the open-source **Open Food Facts API**.
+4. The product title, brand name, variant size, categories, and product images are extracted and created as a new `CatalogItem` in the database.
+5. Future scans immediately resolve locally without needing another external network roundtrip.
 
-4.  **Run the application**:
-    -   **On Physical Phone**: Scan the QR code displayed in the terminal using the **Expo Go** app (Android) or the native Camera app (iOS). Ensure your phone and development machine are connected to the same Wi-Fi network.
-    -   **On iOS Simulator**: Press `i` in the terminal prompt (requires macOS with Xcode command line tools).
-    -   **On Android Emulator**: Press `a` in the terminal prompt (requires Android Studio running an active Virtual Device).
-    -   **On Web Browser**: Press `w` to spin up a web preview.
+```mermaid
+sequenceDiagram
+    participant Mobile as Mobile App (Camera Scan)
+    participant Server as Express Server
+    participant DB as Postgres Database
+    participant OFF as Open Food Facts API
+
+    Mobile->>Server: GET /api/catalog/search?barcode=123456
+    Server->>DB: Check if catalog item exists
+    alt Item Exists
+        DB-->>Server: Return catalog item
+        Server-->>Mobile: Return catalog item
+    else Item Does Not Exist
+        Server->>OFF: Fetch /api/v0/product/123456.json
+        alt Product Found in OFF
+            OFF-->>Server: Return OFF data
+            Server->>DB: Save new CatalogItem
+            DB-->>Server: Return saved item
+            Server-->>Mobile: Return catalog item
+        else Not Found Anywhere
+            Server-->>Mobile: Return Empty Array (Not Found)
+        end
+    end
+```
+
+### 4. Multi-Tenant Inventory Customizations
+Shopkeepers can import items from the global master catalog into their local store inventory.
+* **Custom Description Override**: Merchants can supplement generic item descriptions with custom shopkeeper descriptions (e.g. "Includes extra 10% bonus gram weight inside!").
+* **Stock Tracking**: Maintains an inventory availability status of `IN_STOCK`, `LOW_STOCK`, or `OUT_OF_STOCK` to alert customers before they place orders.
+
+### 5. Transactional Order Pipeline & Price Isolation
+To safeguard the system against data discrepancies during high-concurrency order placement:
+* **Atomic Transactions**: Executed within a database `$transaction` wrapper in [order.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/order.controller.ts). If any step fails (e.g., database network disconnects, an item goes out of stock mid-operation), the entire order is rolled back cleanly.
+* **Pre-Flight Validation**: Validates that all requested items are marked as `IN_STOCK` and belong to the correct merchant.
+* **Price Freezing**: Isolates unit prices dynamically at checkout and locks them into the `OrderItem` schema.
+
+### 6. Customer Discovery API
+Allows public, non-authenticated shoppers to search local items.
+* **Open Routing**: Endpoints are kept public under `/api/discovery/search` to maximize conversion rates.
+* **Dynamic Mapping**: Resolves full product descriptions, current pricing, shop descriptions, and active store coordinates.
+
+### 7. Mobile Navigation Gatekeeper Flow
+The client navigation in [AppNavigator.tsx](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/mobile/src/navigation/AppNavigator.tsx) acts as a structural gatekeeper.
+* **Dynamic Routing**:
+  - Unauthenticated users are routed to the `AuthScreen` (supports login & registration mode).
+  - Authenticated shopkeepers are wrapped in a `ShopkeeperRoot` component. This gatekeeper runs a pre-flight request to `/api/shop/me` to determine if a store profile exists.
+  - If no store profile is configured, the router loads the `ShopSetupScreen` and blocks access to the barcode scanner. Once onboarding is complete, navigation updates to load the standard scanner dashboard.
+  - Authenticated customers bypass the gatekeeper and load the customer dashboard screens.
+* **Storage and Stores**: Uses **Zustand** stores (`authStore.ts` and `themeStore.ts`) to manage tokens, user roles, and UI theme states. Tokens and roles are securely persisted to device hardware via Expo's `SecureStore`.
 
 ---
 
-## 🌟 Core Backend Implementation Features
+## API Reference Manual
 
-### 🔐 Role-Based Security Pipeline
-Authentication routes issue cryptographically signed JWT tokens carrying user IDs and roles. The [auth.middleware.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/middleware/auth.middleware.ts) middleware intercepts request headers to unpack the token. Controller-level validators then enforce access boundaries based on roles:
--   `SHOPKEEPER`: Authorized to create store endpoints and upsert inventory listings.
--   `CUSTOMER` / Public: Restricted to browsing the catalog and running discovery scans.
+> [!NOTE]  
+> All POST/PUT payloads require a request header configuration of `Content-Type: application/json`. JWT-protected routes expect the standard header `Authorization: Bearer <your_jwt_token>`.
 
-### 📍 Progressive Radius Geospatial Search
-In [discovery.controller.ts](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/src/controllers/discovery.controller.ts), the application performs distance scans via the Haversine equation:
-$$d = 2R \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
-To avoid an "Empty Application" feeling when a customer opens the app in a sparsely populated region, the algorithm runs a **Progressive Radius expansion**:
-1.  Filters results within a **5 km** radius.
-2.  If less than **2 shops** match, the radius expands to **15 km**.
-3.  Expands dynamically up to **30 km** and **50 km** thresholds until matching merchants are identified.
+### Authentication Routing
 
-### 📝 Shopkeeper Custom Descriptions
-The database supports generic items globally but allows shopkeepers to append localized, store-specific custom descriptions or usage warnings directly onto item rows mapping to their stores in the `Inventory` model. This allows shopkeepers to override generic attributes with store-specific details (e.g. "Slightly damaged packaging but product is perfectly fresh").
+#### Register Account
+* **URL**: `/api/auth/register`
+* **Method**: `POST`
+* **Auth**: Public
+* **Payload**:
+```json
+{
+  "phone": "+919876543210",
+  "otp": "123456",
+  "password": "securepassword123",
+  "name": "Arjun Kumar",
+  "role": "SHOPKEEPER"
+}
+```
+* **Success Response (201)**:
+```json
+{
+  "token": "eyJhbGciOi...",
+  "user": {
+    "id": "2bc0832a-d9df-4a67-b50a-11db50175b9f",
+    "role": "SHOPKEEPER",
+    "name": "Arjun Kumar"
+  }
+}
+```
 
-### 🔒 Purchase Price Isolation
-To prevent disputes or accounting discrepancies resulting from post-purchase price changes, the `OrderItem` schema records a copy of the item's unit price at the time of order placement. If a shopkeeper alters their inventory pricing in the future, all historical order structures remain correct and unaltered.
+#### Login Account
+* **URL**: `/api/auth/login`
+* **Method**: `POST`
+* **Auth**: Public
+* **Payload**:
+```json
+{
+  "phone": "+919876543210",
+  "password": "securepassword123"
+}
+```
+* **Success Response (200)**:
+```json
+{
+  "token": "eyJhbGciOi...",
+  "user": {
+    "id": "2bc0832a-d9df-4a67-b50a-11db50175b9f",
+    "role": "SHOPKEEPER",
+    "name": "Arjun Kumar"
+  }
+}
+```
+
+---
+
+### Shop Profile Routing
+
+#### Get Current User's Shop
+* **URL**: `/api/shop/me`
+* **Method**: `GET`
+* **Auth**: Verified JWT (Shopkeeper Only)
+* **Success Response (200)**:
+```json
+{
+  "id": "8c59f2a0-43ef-4f19-86ad-042cde99a4e3",
+  "ownerId": "2bc0832a-d9df-4a67-b50a-11db50175b9f",
+  "name": "Aditya Mega Mart",
+  "category": "Grocery",
+  "address": "123 Hazratganj, Lucknow, UP",
+  "latitude": 26.8467,
+  "longitude": 80.9462,
+  "upiId": "aditya@okaxis",
+  "openTime": "09:00",
+  "closeTime": "21:00"
+}
+```
+
+#### Setup/Update Shop Profile
+* **URL**: `/api/shop/setup`
+* **Method**: `POST`
+* **Auth**: Verified JWT (Shopkeeper Only)
+* **Payload**:
+```json
+{
+  "name": "Aditya Mega Mart",
+  "category": "Grocery",
+  "address": "123 Hazratganj, Lucknow, UP",
+  "latitude": 26.8467,
+  "longitude": 80.9462,
+  "upiId": "aditya@okaxis",
+  "openTime": "09:00",
+  "closeTime": "21:00"
+}
+```
+* **Success Response (200)**: Returns the newly created or updated shop object payload.
+
+---
+
+### Catalog Routing
+
+#### Search Master Catalog
+* **URL**: `/api/catalog/search`
+* **Method**: `GET`
+* **Auth**: Verified JWT
+* **Query Parameters**:
+  - `barcode`: Enforces an exact barcode lookup (triggering Open Food Facts self-learning if missing).
+  - `query`: Fuzzy query matches on product names (used for general search).
+* **Success Response (200)**:
+```json
+{
+  "items": [
+    {
+      "id": "e2d83ab9-d830-4e5c-9c76-568b63e9f4c3",
+      "barcode": "8901491101830",
+      "name": "Lays Magic Masala",
+      "brand": "Lay's",
+      "variant": "50g",
+      "category": "Snacks",
+      "imageUrl": "https://images.openfoodfacts.org/..."
+    }
+  ]
+}
+```
+
+#### Add Global Catalog Item Manually
+* **URL**: `/api/catalog`
+* **Method**: `POST`
+* **Auth**: Verified JWT
+* **Payload**:
+```json
+{
+  "barcode": "8901491101830",
+  "name": "Lays Magic Masala",
+  "brand": "Lay's",
+  "variant": "50g",
+  "category": "Snacks",
+  "imageUrl": "https://..."
+}
+```
+* **Success Response (201)**: Returns the newly created catalog item object.
+
+---
+
+### Inventory Routing
+
+#### Upsert Local Inventory Item
+* **URL**: `/api/inventory`
+* **Method**: `POST`
+* **Auth**: Verified JWT (Shopkeeper Only)
+* **Payload**:
+```json
+{
+  "catalogItemId": "e2d83ab9-d830-4e5c-9c76-568b63e9f4c3",
+  "price": 20.00,
+  "customDescription": "Fresh stock arrived today",
+  "status": "IN_STOCK"
+}
+```
+* **Success Response (200)**:
+```json
+{
+  "inventory": {
+    "id": "7616238b-d734-4bc7-95de-91ad34bfe9bc",
+    "shopId": "8c59f2a0-43ef-4f19-86ad-042cde99a4e3",
+    "itemId": "e2d83ab9-d830-4e5c-9c76-568b63e9f4c3",
+    "price": 20.00,
+    "customDescription": "Fresh stock arrived today",
+    "status": "IN_STOCK",
+    "updatedAt": "2026-07-18T16:00:00Z"
+  }
+}
+```
+
+---
+
+### Customer Order Routing
+
+#### Place Order
+* **URL**: `/api/orders`
+* **Method**: `POST`
+* **Auth**: Verified JWT (Customer Only)
+* **Payload**:
+```json
+{
+  "shopId": "8c59f2a0-43ef-4f19-86ad-042cde99a4e3",
+  "items": [
+    {
+      "inventoryId": "7616238b-d734-4bc7-95de-91ad34bfe9bc",
+      "quantity": 2
+    }
+  ]
+}
+```
+* **Success Response (201)**:
+```json
+{
+  "message": "Order placed successfully",
+  "order": {
+    "id": "3bc246b0-c831-419b-a012-c284fe983f2a",
+    "customerId": "119f18a2-9b2f-410a-b32c-63b018ea69cb",
+    "shopId": "8c59f2a0-43ef-4f19-86ad-042cde99a4e3",
+    "status": "PENDING",
+    "totalAmount": 40.00,
+    "createdAt": "2026-07-18T16:05:00Z",
+    "items": [
+      {
+        "id": "9ac184bb-731c-439f-9c09-020ab20e03ca",
+        "orderId": "3bc246b0-c831-419b-a012-c284fe983f2a",
+        "inventoryId": "7616238b-d734-4bc7-95de-91ad34bfe9bc",
+        "quantity": 2,
+        "price": 20.00
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Discovery Routing
+
+#### Hyperlocal Stock Lookup
+* **URL**: `/api/discovery/search`
+* **Method**: `GET`
+* **Auth**: Public
+* **Query Parameters**:
+  - `query`: Text input matching item name details
+* **Success Response (200)**:
+```json
+[
+  {
+    "inventoryId": "7616238b-d734-4bc7-95de-91ad34bfe9bc",
+    "price": 20.00,
+    "itemDetails": {
+      "id": "e2d83ab9-d830-4e5c-9c76-568b63e9f4c3",
+      "barcode": "8901491101830",
+      "name": "Lays Magic Masala",
+      "brand": "Lay's",
+      "variant": "50g",
+      "category": "Snacks",
+      "imageUrl": "https://..."
+    },
+    "shopDetails": {
+      "id": "8c59f2a0-43ef-4f19-86ad-042cde99a4e3",
+      "name": "Aditya Mega Mart",
+      "address": "123 Hazratganj, Lucknow, UP",
+      "latitude": 26.8467,
+      "longitude": 80.9462
+    }
+  }
+]
+```
+
+---
+
+## Local Environment Setup
+
+Ensure you have **Node.js (v18.x or v20.x)** and a **PostgreSQL Database** instance ready.
+
+### 1. Database & Backend Configuration
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Initialize the environmental variables:
+   ```bash
+   cp .env.example .env
+   ```
+4. Configure your `.env` configuration credentials:
+   ```ini
+   DATABASE_URL="postgresql://username:password@localhost:5432/hyperlocal_db?sslmode=prefer"
+   JWT_SECRET="development_secret_key"
+   PORT=5000
+   ```
+5. Apply database migrations to synchronize your Postgres schema:
+   ```bash
+   npx prisma db push
+   ```
+6. Start the local Express server in watch mode:
+   ```bash
+   npm run dev
+   ```
+7. Verify server status:
+   ```bash
+   curl http://localhost:5000/health
+   ```
+   *Expected Response:* `{"status": "healthy", "database": "connected"}`
+
+### 2. Native Mobile Setup
+
+1. Open a new terminal instance and navigate to the mobile directory:
+   ```bash
+   cd mobile
+   ```
+2. Install client dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the local Metro bundler:
+   ```bash
+   npm run start
+   ```
+4. Launch on desired targets:
+   - **Physical Device**: Open the **Expo Go** application on Android or iOS and scan the QR code printed in the terminal (ensure both development computer and phone are connected to the same Wi-Fi router).
+   - **iOS Simulator**: Press `i` to launch on Xcode simulator.
+   - **Android Emulator**: Press `a` to launch on Android Studio Virtual Device.
+   - **Web Browser**: Press `w` to spin up a web preview.
