@@ -9,11 +9,11 @@ import pg from 'pg';
 
 // Import pipelines/insiders
 import authRoutes from './routes/auth.routes.js';
-import shopRoutes from './routes/shop.routes.js';
 import catalogRoutes from './routes/catalog.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
 import orderRoutes from './routes/order.routes.js';
+import shopRoutes from './routes/shop.routes.js';
 import { globalErrorHandler } from './middleware/error.middleware.js';
 
 // Load environment configurations
@@ -42,7 +42,7 @@ const authLimiter = rateLimit({
 
 // Mount core API routes
 app.use('/api/auth', authLimiter, authRoutes); // Protected by limiter
-app.use('/api/shops', shopRoutes);
+app.use('/api/shop', shopRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/discovery', discoveryRoutes);

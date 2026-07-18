@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { createShop } from '../controllers/shop.controller.js';
-import { requireAuth } from '../middleware/auth.middleware.js';
+import { getMyShop, setupShop } from '../controllers/shop.controller.js';
+import { verifyToken } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Shielded route: Must have valid JWT
-router.post('/', requireAuth, createShop);
+// Both routes require the user to be logged in
+router.get('/me', verifyToken, getMyShop);
+router.post('/setup', verifyToken, setupShop);
 
 export default router;
