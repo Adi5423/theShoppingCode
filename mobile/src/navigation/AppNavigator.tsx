@@ -14,7 +14,9 @@ import { useState } from 'react';
 
 // ── Screens ──
 import { AuthScreen } from '../features/auth/AuthScreen';
-import { ShopkeeperHome } from '../features/shop/ShopkeeperHome';
+import { InventoryListScreen } from '../features/shop/InventoryListScreen';
+import { BarcodeScannerScreen } from '../features/shop/BarcodeScannerScreen';
+import { AddProductScreen } from '../features/shop/AddProductScreen';
 import { ShopSetupScreen } from '../features/shop/ShopSetupScreen';
 import { ShopkeeperDashboard } from '../features/shop/ShopkeeperDashboard';
 
@@ -275,6 +277,17 @@ const CustomerTabs = () => {
     );
 };
 
+// ── Inventory Stack (Shopkeeper) ──
+const InventoryStack = () => {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="InventoryList" component={InventoryListScreen} />
+            <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
+            <Stack.Screen name="AddProduct" component={AddProductScreen} />
+        </Stack.Navigator>
+    );
+};
+
 // ── Shopkeeper Tabs ──
 const ShopkeeperTabs = () => {
     const { isDarkMode } = useThemeStore();
@@ -311,7 +324,7 @@ const ShopkeeperTabs = () => {
         >
             <Tab.Screen name="Dashboard" component={ShopkeeperDashboard} />
             <Tab.Screen name="Orders" component={ShopkeeperOrders} />
-            <Tab.Screen name="Inventory" component={ShopkeeperHome} />
+            <Tab.Screen name="Inventory" component={InventoryStack} />
             <Tab.Screen name="Settings" component={ShopkeeperSettings} />
         </Tab.Navigator>
     );
