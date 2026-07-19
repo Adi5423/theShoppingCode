@@ -10,6 +10,8 @@ import { ShopSetupScreen } from '../features/shop/ShopSetupScreen';
 import { apiClient } from '../shared/api/client';
 import { ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
+import { Feather } from '@expo/vector-icons';
+import { ShopkeeperDashboard } from '../features/shop/ShopkeeperDashboard';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -40,9 +42,27 @@ const CustomerTabs = () => (
 
 // Tab Navigator for Shopkeepers
 const ShopkeeperTabs = () => (
-    <Tab.Navigator screenOptions={{ headerTitleAlign: 'center', tabBarActiveTintColor: '#4338CA' }}>
-        <Tab.Screen name="Scanner" component={ShopkeeperHome} options={{ title: 'Scan Inventory' }} />
-        <Tab.Screen name="Orders" component={ShopkeeperOrders} options={{ title: 'Manage Orders' }} />
+    <Tab.Navigator
+        screenOptions={({ route }) => ({
+            headerShown: false,
+            tabBarActiveTintColor: '#043927', // The new Deep Green
+            tabBarInactiveTintColor: '#9CA3AF',
+            tabBarStyle: { paddingBottom: 5, paddingTop: 5, height: 60 },
+            tabBarIcon: ({ color, size }) => {
+                let iconName: any = 'box';
+                if (route.name === 'Dashboard') iconName = 'layout';
+                else if (route.name === 'Orders') iconName = 'clipboard';
+                else if (route.name === 'Inventory') iconName = 'package';
+                else if (route.name === 'Settings') iconName = 'settings';
+                return <Feather name={iconName} size={22} color={color} />;
+            }
+        })}
+    >
+        <Tab.Screen name="Dashboard" component={ShopkeeperDashboard} />
+        <Tab.Screen name="Orders" component={ShopkeeperOrders} />
+        {/* We moved the scanner component to the Inventory tab for now */}
+        <Tab.Screen name="Inventory" component={ShopkeeperHome} />
+        <Tab.Screen name="Settings" component={ShopkeeperOrders} />
     </Tab.Navigator>
 );
 
