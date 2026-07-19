@@ -1,61 +1,145 @@
-import { type Response } from 'express';
+import { type Request, type Response } from 'express';
 import { prisma } from '../index.js';
 import { type AuthRequest } from '../middleware/auth.middleware.js';
 
-export const placeOrder = async (req: AuthRequest, res: Response): Promise<void> => {
-    const { shopId, items } = req.body; // items: [{ inventoryId: string, quantity: number }]
-    const customerId = req.user?.id;
+// POST /api/orders
+export const createOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const { shopId, items } = req.body; // items: [{ inventoryId, quantity, price }]
 
-    if (!customerId || req.user?.role !== 'CUSTOMER') {
-        res.status(403).json({ error: "Only registered customers can place orders." });
+    if (!shopId || !items || items.length === 0) {
+        res.status(400).json({ error: "shopId and items are required" });
         return;
     }
 
     try {
-        // 1. Fetch current inventory states for all requested items to verify stock and price
-        const inventoryIds = items.map((i: any) => i.inventoryId);
-        const liveInventory = await prisma.inventory.findMany({
-            where: { id: { in: inventoryIds }, shopId, status: 'IN_STOCK' }
+        // Calculate total amount
+        const totalAmount = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+
+        // Generate 4 digit pickup code
+        const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+        const order = await prisma.order.create({
+            data: {
+                customerId: userId!,
+                shopId,
+                totalAmount,
+                pickupCode,
+                status: 'PENDING',
+                items: {
+                    create: items.map((item: any) => ({
+                        inventoryId: item.inventoryId,
+                        quantity: item.quantity,
+                        price: item.price
+                    }))
+                }
+            },
+            include: {
+                items: {
+                    include: {
+                        inventory: {
+                            include: {
+                                item: true
+                            }
+                        }
+                    }
+                },
+                shop: true
+            }
         });
 
-        if (liveInventory.length !== items.length) {
-            res.status(400).json({ error: "One or more items are out of stock or invalid for this shop." });
+        res.status(201).json({ order });
+    } catch (error) {
+        console.error("[Order Create Error]:", error);
+        res.status(500).json({ error: "Failed to place order." });
+    }
+};
+
+// GET /api/orders
+export const getOrders = async (req: AuthRequest, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+
+    try {
+        let orders: any[] = [];
+
+        if (role === 'SHOPKEEPER') {
+            const shop = await prisma.shop.findUnique({ where: { ownerId: userId } });
+            if (shop) {
+                orders = await prisma.order.findMany({
+                    where: { shopId: shop.id },
+                    include: {
+                        customer: { select: { name: true, phone: true } },
+                        items: {
+                            include: {
+                                inventory: {
+                                    include: { item: true }
+                                }
+                            }
+                        }
+                    },
+                    orderBy: { createdAt: 'desc' }
+                });
+            }
+        } else {
+            // CUSTOMER
+            orders = await prisma.order.findMany({
+                where: { customerId: userId },
+                include: {
+                    shop: true,
+                    items: {
+                        include: {
+                            inventory: {
+                                include: { item: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+        }
+
+        res.status(200).json({ orders });
+    } catch (error) {
+        console.error("[Get Orders Error]:", error);
+        res.status(500).json({ error: "Failed to fetch orders." });
+    }
+};
+
+// PATCH /api/orders/:id/status
+export const updateOrderStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+    const orderId = req.params.id as string;
+    const { status } = req.body;
+    const userId = req.user?.id;
+    const role = req.user?.role;
+
+    try {
+        const order = await prisma.order.findUnique({ where: { id: orderId } });
+        if (!order) {
+            res.status(404).json({ error: "Order not found" });
             return;
         }
 
-        // 2. Calculate the total and prep the OrderItems with locked prices
-        let totalAmount = 0;
-        const orderItemsData = items.map((cartItem: any) => {
-            const dbItem = liveInventory.find(i => i.id === cartItem.inventoryId);
-            const itemTotal = (dbItem?.price || 0) * cartItem.quantity;
-            totalAmount += itemTotal;
+        // Only shopkeepers can update status for their shop (for now)
+        if (role !== 'SHOPKEEPER') {
+            res.status(403).json({ error: "Only shopkeepers can update order status." });
+            return;
+        }
 
-            return {
-                inventoryId: cartItem.inventoryId,
-                quantity: cartItem.quantity,
-                price: dbItem?.price || 0 // Locks the price dynamically
-            };
+        const shop = await prisma.shop.findUnique({ where: { ownerId: userId } });
+        if (!shop || order.shopId !== shop.id) {
+            res.status(403).json({ error: "Unauthorized to update this order." });
+            return;
+        }
+
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: { status }
         });
 
-        // 3. Execute an atomic transaction: Create Order + Order Items together
-        const order = await prisma.$transaction(async (tx) => {
-            return await tx.order.create({
-                data: {
-                    customerId,
-                    shopId,
-                    totalAmount,
-                    status: 'PENDING',
-                    items: {
-                        create: orderItemsData
-                    }
-                },
-                include: { items: true } // Return the created items in the response
-            });
-        });
-
-        res.status(201).json({ message: "Order placed successfully", order });
+        res.status(200).json({ order: updatedOrder });
     } catch (error) {
-        console.error("[Order Processing Error]:", error);
-        res.status(500).json({ error: "Transaction failed. Order rolled back." });
+        console.error("[Update Order Status Error]:", error);
+        res.status(500).json({ error: "Failed to update order status." });
     }
 };

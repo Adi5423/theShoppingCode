@@ -114,6 +114,7 @@ model Order {
   shopId      String
   status      OrderStatus @default(PENDING)
   totalAmount Float
+  pickupCode  String      @db.VarChar(4)
   createdAt   DateTime    @default(now())
   
   customer    User        @relation(fields: [customerId], references: [id])

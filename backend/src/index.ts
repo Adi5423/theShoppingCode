@@ -14,6 +14,7 @@ import inventoryRoutes from './routes/inventory.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import shopRoutes from './routes/shop.routes.js';
+import customerRoutes from './routes/customer.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import { globalErrorHandler } from './middleware/error.middleware.js';
 
@@ -51,6 +52,7 @@ app.use('/api/catalog', catalogRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/discovery', discoveryRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/customer', customerRoutes);
 
 
 //Global error handler must be the last middleware
