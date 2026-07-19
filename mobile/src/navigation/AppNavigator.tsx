@@ -12,14 +12,20 @@ import { lightTheme, darkTheme, spacing, radius, typography, shadows } from '../
 import { apiClient } from '../shared/api/client';
 import { useState } from 'react';
 
-// ── Screens ──
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { InventoryListScreen } from '../features/shop/InventoryListScreen';
 import { BarcodeScannerScreen } from '../features/shop/BarcodeScannerScreen';
 import { AddProductScreen } from '../features/shop/AddProductScreen';
 import { ShopSetupScreen } from '../features/shop/ShopSetupScreen';
 import { ShopkeeperDashboard } from '../features/shop/ShopkeeperDashboard';
+import { ShopkeeperOrders } from '../features/shop/ShopkeeperOrders';
+import { ShopkeeperSettings } from '../features/shop/ShopkeeperSettings';
 
+// ── Customer Screens ──
+import { CustomerSearchScreen } from '../features/customer/CustomerSearchScreen';
+import { ShopInventoryScreen } from '../features/customer/ShopInventoryScreen';
+import { CartScreen } from '../features/customer/CartScreen';
+import { CustomerOrdersScreen } from '../features/customer/CustomerOrdersScreen';
 // ─────────────────────────────────────────────────────────
 //  AppNavigator — Premium tab bar, themed skeletons,
 //  branded loading states
@@ -77,165 +83,16 @@ const skeletonStyles = StyleSheet.create({
     },
 });
 
-// ── Customer Skeleton Screens ──
-const CustomerSearch = () => (
-    <ComingSoonScreen
-        icon="map-pin"
-        title="Discover Nearby"
-        description="Find grocery and retail items at shops in your neighborhood."
-    />
-);
-const CustomerOrders = () => (
-    <ComingSoonScreen
-        icon="package"
-        title="Your Orders"
-        description="Track your order status and pickup details in real time."
-    />
-);
-const CustomerProfile = () => {
-    const signOut = useAuthStore(state => state.signOut);
-    const { isDarkMode, toggleTheme } = useThemeStore();
-    const theme = isDarkMode ? darkTheme : lightTheme;
-
+// ── Customer Search Stack ──
+const CustomerSearchStack = () => {
     return (
-        <View style={[profileStyles.container, { backgroundColor: theme.colors.background }]}>
-            <View style={[profileStyles.avatar, { backgroundColor: theme.colors.primaryMuted }]}>
-                <Feather name="user" size={32} color={theme.colors.primary} />
-            </View>
-            <Text style={[profileStyles.name, { color: theme.colors.text }]}>My Profile</Text>
-
-            {/* Theme Toggle */}
-            <TouchableOpacity
-                onPress={toggleTheme}
-                style={[profileStyles.option, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-                activeOpacity={0.7}
-            >
-                <Feather name={isDarkMode ? 'sun' : 'moon'} size={18} color={theme.colors.text} />
-                <Text style={[profileStyles.optionText, { color: theme.colors.text }]}>
-                    {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                </Text>
-                <Feather name="chevron-right" size={16} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-
-            {/* Logout */}
-            <TouchableOpacity
-                onPress={signOut}
-                style={[profileStyles.option, { backgroundColor: theme.colors.errorBg, borderColor: theme.colors.errorMuted }]}
-                activeOpacity={0.7}
-            >
-                <Feather name="log-out" size={18} color={theme.colors.error} />
-                <Text style={[profileStyles.optionText, { color: theme.colors.error }]}>Sign Out</Text>
-                <Feather name="chevron-right" size={16} color={theme.colors.error} />
-            </TouchableOpacity>
-        </View>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Search" component={CustomerSearchScreen} />
+            <Stack.Screen name="ShopInventory" component={ShopInventoryScreen} />
+            <Stack.Screen name="Cart" component={CartScreen} />
+        </Stack.Navigator>
     );
 };
-
-const profileStyles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-    avatar: {
-        width: 80, height: 80, borderRadius: 40,
-        alignItems: 'center', justifyContent: 'center',
-        marginBottom: spacing.md,
-    },
-    name: {
-        fontSize: typography.fontSize.xl,
-        fontWeight: typography.fontWeight.bold,
-        marginBottom: spacing.xl,
-    },
-    option: {
-        flexDirection: 'row', alignItems: 'center',
-        width: '100%', padding: spacing.md,
-        borderRadius: radius.md, borderWidth: 1,
-        marginBottom: spacing.sm, gap: spacing.sm,
-    },
-    optionText: {
-        flex: 1,
-        fontSize: typography.fontSize.base,
-        fontWeight: typography.fontWeight.medium,
-    },
-});
-
-// ── Shopkeeper Skeleton ──
-const ShopkeeperOrders = () => (
-    <ComingSoonScreen
-        icon="clipboard"
-        title="Incoming Orders"
-        description="Accept, reject, and manage customer orders in real time."
-    />
-);
-
-const ShopkeeperSettings = () => {
-    const signOut = useAuthStore(state => state.signOut);
-    const { isDarkMode, toggleTheme } = useThemeStore();
-    const theme = isDarkMode ? darkTheme : lightTheme;
-
-    return (
-        <View style={[settingsStyles.container, { backgroundColor: theme.colors.background }]}>
-            <View style={settingsStyles.header}>
-                <Text style={[settingsStyles.title, { color: theme.colors.text }]}>Settings</Text>
-            </View>
-            <View style={settingsStyles.content}>
-                {/* Theme Toggle */}
-                <TouchableOpacity
-                    onPress={toggleTheme}
-                    style={[settingsStyles.option, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, shadows.sm]}
-                    activeOpacity={0.7}
-                >
-                    <View style={[settingsStyles.optionIcon, { backgroundColor: isDarkMode ? '#2A2218' : '#FEF3C7' }]}>
-                        <Feather name={isDarkMode ? 'sun' : 'moon'} size={18} color={isDarkMode ? '#FBBF24' : '#6366F1'} />
-                    </View>
-                    <View style={settingsStyles.optionContent}>
-                        <Text style={[settingsStyles.optionTitle, { color: theme.colors.text }]}>
-                            Appearance
-                        </Text>
-                        <Text style={[settingsStyles.optionSub, { color: theme.colors.textMuted }]}>
-                            {isDarkMode ? 'Dark mode' : 'Light mode'}
-                        </Text>
-                    </View>
-                    <Feather name="chevron-right" size={16} color={theme.colors.textMuted} />
-                </TouchableOpacity>
-
-                {/* Logout */}
-                <TouchableOpacity
-                    onPress={signOut}
-                    style={[settingsStyles.option, { backgroundColor: theme.colors.errorBg, borderColor: theme.colors.errorMuted }]}
-                    activeOpacity={0.7}
-                >
-                    <View style={[settingsStyles.optionIcon, { backgroundColor: theme.colors.errorMuted }]}>
-                        <Feather name="log-out" size={18} color={theme.colors.error} />
-                    </View>
-                    <View style={settingsStyles.optionContent}>
-                        <Text style={[settingsStyles.optionTitle, { color: theme.colors.error }]}>Sign Out</Text>
-                        <Text style={[settingsStyles.optionSub, { color: theme.colors.error }]}>
-                            Log out of your account
-                        </Text>
-                    </View>
-                    <Feather name="chevron-right" size={16} color={theme.colors.error} />
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-};
-
-const settingsStyles = StyleSheet.create({
-    container: { flex: 1 },
-    header: { paddingTop: 70, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-    title: { fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold },
-    content: { padding: spacing.lg },
-    option: {
-        flexDirection: 'row', alignItems: 'center',
-        padding: spacing.md, borderRadius: radius.md,
-        borderWidth: 1, marginBottom: spacing.sm, gap: spacing.md,
-    },
-    optionIcon: {
-        width: 40, height: 40, borderRadius: radius.md,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    optionContent: { flex: 1 },
-    optionTitle: { fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold },
-    optionSub: { fontSize: typography.fontSize.sm, marginTop: 2 },
-});
 
 // ── Customer Tabs ──
 const CustomerTabs = () => {
@@ -263,16 +120,16 @@ const CustomerTabs = () => {
                 },
                 tabBarIcon: ({ color }) => {
                     let iconName: any = 'search';
-                    if (route.name === 'Search') iconName = 'map-pin';
-                    else if (route.name === 'Orders') iconName = 'package';
-                    else if (route.name === 'Profile') iconName = 'user';
+                    if (route.name === 'SearchTab') iconName = 'search';
+                    else if (route.name === 'OrdersTab') iconName = 'shopping-bag';
+                    else if (route.name === 'SettingsTab') iconName = 'user';
                     return <Feather name={iconName} size={21} color={color} />;
                 },
             })}
         >
-            <Tab.Screen name="Search" component={CustomerSearch} options={{ title: 'Discover' }} />
-            <Tab.Screen name="Orders" component={CustomerOrders} options={{ title: 'Orders' }} />
-            <Tab.Screen name="Profile" component={CustomerProfile} options={{ title: 'Profile' }} />
+            <Tab.Screen name="SearchTab" component={CustomerSearchStack} options={{ title: 'Explore' }} />
+            <Tab.Screen name="OrdersTab" component={CustomerOrdersScreen} options={{ title: 'Orders' }} />
+            <Tab.Screen name="SettingsTab" component={ShopkeeperSettings} options={{ title: 'Profile' }} />
         </Tab.Navigator>
     );
 };
