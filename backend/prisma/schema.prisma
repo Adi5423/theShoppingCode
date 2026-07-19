@@ -82,13 +82,30 @@ model Inventory {
   price             Float       // The specific price this shop charges
   customDescription String?     // User requested: Extra details from the shopkeeper
   status            StockStatus @default(IN_STOCK)
+  
+  isLive            Boolean     @default(true)     // green dot = live, red dot = unlive
+  weight            String?                        // e.g. "50g", "1kg", "500ml"
+  isPacked          Boolean     @default(true)     // packed = stock as integer count, unpacked = float quantity
+  stockQuantity     Float       @default(0)        // number of units (packed) or kg/liters (unpacked)
+  
   updatedAt         DateTime    @updatedAt
   
   shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
   item        CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
   orderItems  OrderItem[]
+  variants    InventoryVariant[]
 
   @@unique([shopId, itemId]) 
+}
+
+model InventoryVariant {
+  id            String    @id @default(uuid())
+  inventoryId   String
+  label         String    // e.g. "Magic Masala", "Classic Salted", "Tomato"
+  stockQuantity Float     @default(0)
+  isAvailable   Boolean   @default(true)
+  
+  inventory     Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 }
 
 model Order {

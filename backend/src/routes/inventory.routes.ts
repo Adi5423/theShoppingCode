@@ -1,10 +1,20 @@
 import { Router } from 'express';
-import { addInventoryItem } from '../controllers/inventory.controller.js';
+import { 
+    getMyInventory, 
+    addInventoryItem, 
+    toggleLive, 
+    deleteInventoryItem 
+} from '../controllers/inventory.controller.js';
 import { verifyToken } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Only authenticated shopkeepers can hit this
+// Base path is /api/inventory
+
+// Only authenticated shopkeepers can hit these routes
+router.get('/', verifyToken, getMyInventory);
 router.post('/', verifyToken, addInventoryItem);
+router.patch('/:id/toggle-live', verifyToken, toggleLive);
+router.delete('/:id', verifyToken, deleteInventoryItem);
 
 export default router;
