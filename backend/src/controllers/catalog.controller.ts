@@ -69,3 +69,19 @@ export const addCatalogItem = async (req: Request, res: Response): Promise<void>
         res.status(500).json({ error: "Internal server error" });
     }
 };
+
+export const updateCatalogItem = async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const { name, brand, variant, category, imageUrl } = req.body;
+
+    try {
+        const item = await prisma.catalogItem.update({
+            where: { id },
+            data: { name, brand, variant, category, imageUrl }
+        });
+        res.status(200).json({ item });
+    } catch (error: any) {
+        console.error("[Catalog Update Error]:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
