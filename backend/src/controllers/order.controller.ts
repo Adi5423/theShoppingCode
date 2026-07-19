@@ -192,6 +192,16 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
             }
         });
 
+        // ── Real-time Notification for Shopkeeper ──
+        const shopkeeperNotifMessage = `Order ${order.pickupCode} marked as ${statusLabels[status] || status}.`;
+        await prisma.notification.create({
+            data: {
+                userId: shop.ownerId,
+                title: 'Order Updated',
+                message: shopkeeperNotifMessage
+            }
+        });
+
         io.to(order.customerId).emit('order_updated', { order: updatedOrder, message: customerMessage });
 
         res.status(200).json({ order: updatedOrder });
