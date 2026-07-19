@@ -92,3 +92,34 @@ export const getShopInventory = async (req: AuthRequest, res: Response): Promise
         res.status(500).json({ error: "Failed to fetch shop inventory." });
     }
 };
+
+// GET /api/customer/discover
+export const discoverProducts = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        // Fetch up to 30 live inventory items from random shops
+        // To randomize in Prisma without raw SQL, we can fetch latest 100 and shuffle, 
+        // or just fetch 30 latest. Let's just fetch 30 recent live items for simplicity.
+        const inventory = await prisma.inventory.findMany({
+            where: {
+                isLive: true,
+                stockQuantity: { gt: 0 } // Only in stock
+            },
+            take: 30,
+            orderBy: {
+                updatedAt: 'desc'
+            },
+            include: {
+                item: true,
+                shop: true
+            }
+        });
+
+        // Optional: shuffle array in memory for randomness
+        const shuffled = inventory.sort(() => 0.5 - Math.random());
+
+        res.status(200).json({ products: shuffled });
+    } catch (error) {
+        console.error("[Discover Products Error]:", error);
+        res.status(500).json({ error: "Failed to fetch discover products." });
+    }
+};

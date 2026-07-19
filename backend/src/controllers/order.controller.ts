@@ -127,7 +127,10 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
     const role = req.user?.role;
 
     try {
-        const order = await prisma.order.findUnique({ where: { id: orderId } });
+        const order = await prisma.order.findUnique({ 
+            where: { id: orderId },
+            include: { items: true } 
+        });
         if (!order) {
             res.status(404).json({ error: "Order not found" });
             return;
@@ -147,8 +150,29 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
 
         const updatedOrder = await prisma.order.update({
             where: { id: orderId },
-            data: { status }
+            data: { status },
+            include: {
+                shop: true,
+                items: {
+                    include: {
+                        inventory: {
+                            include: { item: true }
+                        }
+                    }
+                }
+            }
         });
+
+        if (status === 'COMPLETED') {
+            for (const orderItem of order.items) {
+                await prisma.inventory.update({
+                    where: { id: orderItem.inventoryId },
+                    data: {
+                        stockQuantity: { decrement: orderItem.quantity }
+                    }
+                });
+            }
+        }
 
         // ── Real-time Notification for Customer ──
         const statusLabels: Record<string, string> = {
