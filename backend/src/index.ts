@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
+import http from 'http';
+import { initSocket } from './socket.js';
 
 // Import pipelines/insiders
 import authRoutes from './routes/auth.routes.js';
@@ -15,6 +17,7 @@ import discoveryRoutes from './routes/discovery.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import shopRoutes from './routes/shop.routes.js';
 import customerRoutes from './routes/customer.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 import healthRoutes from './routes/health.routes.js';
 import { globalErrorHandler } from './middleware/error.middleware.js';
 
@@ -24,6 +27,10 @@ dotenv.config();
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+initSocket(server);
 
 const PORT = process.env.PORT || 5000;
 
@@ -53,12 +60,13 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/discovery', discoveryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/customer', customerRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 //Global error handler must be the last middleware
 app.use(globalErrorHandler);
 
 // Start listening for inbound incoming traffic
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`[🚀 Server Matrix Engaged]: Running seamlessly on port ${PORT}`);
 });

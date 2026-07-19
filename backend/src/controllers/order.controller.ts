@@ -1,6 +1,7 @@
 import { type Request, type Response } from 'express';
 import { prisma } from '../index.js';
 import { type AuthRequest } from '../middleware/auth.middleware.js';
+import { io } from '../socket.js';
 
 // POST /api/orders
 export const createOrder = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -47,6 +48,18 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
                 shop: true
             }
         });
+
+        // ── Real-time Notification for Shopkeeper ──
+        const shopkeeperMessage = `New order received for ₹${totalAmount}`;
+        await prisma.notification.create({
+            data: {
+                userId: order.shop.ownerId,
+                title: 'New Order',
+                message: shopkeeperMessage
+            }
+        });
+        
+        io.to(order.shop.ownerId).emit('new_order', { order, message: shopkeeperMessage });
 
         res.status(201).json({ order });
     } catch (error) {
@@ -136,6 +149,25 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
             where: { id: orderId },
             data: { status }
         });
+
+        // ── Real-time Notification for Customer ──
+        const statusLabels: Record<string, string> = {
+            'ACCEPTED': 'Preparing',
+            'READY_FOR_PICKUP': 'Ready to Pickup',
+            'COMPLETED': 'Completed',
+            'CANCELLED': 'Cancelled'
+        };
+        const customerMessage = `Your order from ${shop.name} is now ${statusLabels[status] || status}.`;
+        
+        await prisma.notification.create({
+            data: {
+                userId: order.customerId,
+                title: 'Order Update',
+                message: customerMessage
+            }
+        });
+
+        io.to(order.customerId).emit('order_updated', { order: updatedOrder, message: customerMessage });
 
         res.status(200).json({ order: updatedOrder });
     } catch (error) {

@@ -29,49 +29,50 @@ enum OrderStatus {
 model User {
   id        String   @id @default(uuid()) // Secure generated ID
   phone     String   @unique
-  password  String?  // NEW: Optional for legacy accounts, required for new ones
+  password  String? // NEW: Optional for legacy accounts, required for new ones
   name      String?
   role      Role     @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  shop      Shop?
-  orders    Order[]
+
+  shop          Shop?
+  orders        Order[]
+  notifications Notification[]
 }
 
 model Shop {
-  id          String      @id @default(uuid())
-  ownerId     String      @unique // One shop per user
-  owner       User        @relation(fields: [ownerId], references: [id])
-  
-  name        String
-  category    String?     // e.g., "Grocery", "Pharmacy"
-  address     String
-  latitude    Float
-  longitude   Float
-  
-  upiId       String?     // For payouts
-  openTime    String?     // e.g., "09:00"
-  closeTime   String?     // e.g., "22:00"
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  inventory   Inventory[]
-  orders      Order[]
+  id      String @id @default(uuid())
+  ownerId String @unique // One shop per user
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  name      String
+  category  String? // e.g., "Grocery", "Pharmacy"
+  address   String
+  latitude  Float
+  longitude Float
+
+  upiId     String? // For payouts
+  openTime  String? // e.g., "09:00"
+  closeTime String? // e.g., "22:00"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventory Inventory[]
+  orders    Order[]
 }
 
 // UPDATED: Now supports Open Food Facts data & Variants natively
 model CatalogItem {
-  id          String   @id @default(uuid())
-  barcode     String?  @unique 
-  name        String   // e.g., "Lays Magic Masala"
-  brand       String?  // e.g., "Lay's"
-  variant     String?  // e.g., "50g", "Blue Flavor", "Family Pack"
-  category    String?  // e.g., "Snacks"
-  imageUrl    String?
-  
-  inventory   Inventory[]
+  id       String  @id @default(uuid())
+  barcode  String? @unique
+  name     String // e.g., "Lays Magic Masala"
+  brand    String? // e.g., "Lay's"
+  variant  String? // e.g., "50g", "Blue Flavor", "Family Pack"
+  category String? // e.g., "Snacks"
+  imageUrl String?
+
+  inventory Inventory[]
 }
 
 // UPDATED: Added customDescription so shopkeepers can add their own notes
@@ -79,33 +80,33 @@ model Inventory {
   id                String      @id @default(uuid())
   shopId            String
   itemId            String
-  price             Float       // The specific price this shop charges
-  customDescription String?     // User requested: Extra details from the shopkeeper
+  price             Float // The specific price this shop charges
+  customDescription String? // User requested: Extra details from the shopkeeper
   status            StockStatus @default(IN_STOCK)
-  
-  isLive            Boolean     @default(true)     // green dot = live, red dot = unlive
-  weight            String?                        // e.g. "50g", "1kg", "500ml"
-  isPacked          Boolean     @default(true)     // packed = stock as integer count, unpacked = float quantity
-  stockQuantity     Float       @default(0)        // number of units (packed) or kg/liters (unpacked)
-  
-  updatedAt         DateTime    @updatedAt
-  
-  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  item        CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  orderItems  OrderItem[]
-  variants    InventoryVariant[]
 
-  @@unique([shopId, itemId]) 
+  isLive        Boolean @default(true) // green dot = live, red dot = unlive
+  weight        String? // e.g. "50g", "1kg", "500ml"
+  isPacked      Boolean @default(true) // packed = stock as integer count, unpacked = float quantity
+  stockQuantity Float   @default(0) // number of units (packed) or kg/liters (unpacked)
+
+  updatedAt DateTime @updatedAt
+
+  shop       Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  item       CatalogItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  variants   InventoryVariant[]
+
+  @@unique([shopId, itemId])
 }
 
 model InventoryVariant {
-  id            String    @id @default(uuid())
+  id            String  @id @default(uuid())
   inventoryId   String
-  label         String    // e.g. "Magic Masala", "Classic Salted", "Tomato"
-  stockQuantity Float     @default(0)
-  isAvailable   Boolean   @default(true)
-  
-  inventory     Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  label         String // e.g. "Magic Masala", "Classic Salted", "Tomato"
+  stockQuantity Float   @default(0)
+  isAvailable   Boolean @default(true)
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 }
 
 model Order {
@@ -116,19 +117,30 @@ model Order {
   totalAmount Float
   pickupCode  String      @db.VarChar(4)
   createdAt   DateTime    @default(now())
-  
-  customer    User        @relation(fields: [customerId], references: [id])
-  shop        Shop        @relation(fields: [shopId], references: [id])
-  items       OrderItem[]
+
+  customer User        @relation(fields: [customerId], references: [id])
+  shop     Shop        @relation(fields: [shopId], references: [id])
+  items    OrderItem[]
 }
 
 model OrderItem {
-  id          String    @id @default(uuid())
+  id          String @id @default(uuid())
   orderId     String
   inventoryId String
   quantity    Int
-  price       Float     // Locks the price at the time of purchase!
-  
-  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  price       Float // Locks the price at the time of purchase!
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
