@@ -45,7 +45,8 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
                         }
                     }
                 },
-                shop: true
+                shop: true,
+                customer: { select: { name: true, phone: true } }
             }
         });
 
