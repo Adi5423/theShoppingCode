@@ -28,14 +28,16 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        // 1. Forensic Developer Logging
-        console.error('\n[API Error]:', {
-            url: error.config?.url,
-            message: error.message,
-            code: error.code,
-            status: error.response?.status,
-            serverData: error.response?.data,
-        });
+        // 1. Forensic Developer Logging (skip health check noise)
+        if (error.config?.url !== '/health') {
+            console.error('\n[API Error]:', {
+                url: error.config?.url,
+                message: error.message,
+                code: error.code,
+                status: error.response?.status,
+                serverData: error.response?.data,
+            });
+        }
 
         // 2. User-Facing Error Parsing
         let uiMessage = 'Something went wrong. Please try again.';
@@ -48,14 +50,14 @@ apiClient.interceptors.response.use(
             const status = error.response.status;
             const serverMsg = error.response.data?.error;
 
-            if (status === 401) {
+            if (serverMsg) {
+                uiMessage = serverMsg;
+            } else if (status === 401) {
                 uiMessage = 'Your session has expired. Please sign in again.';
             } else if (status === 429) {
                 uiMessage = 'Too many requests. Please wait a moment.';
             } else if (status >= 500) {
                 uiMessage = 'Server error. Our team has been notified.';
-            } else if (serverMsg) {
-                uiMessage = serverMsg;
             }
         } else if (error.request) {
             // Request fired, but no response (DNS failure, offline, etc.)

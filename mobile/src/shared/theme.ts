@@ -11,108 +11,108 @@
 export const lightTheme = {
     colors: {
         // Core
-        primary:          '#004437',
-        primaryMuted:     '#E6F0ED',   // Very light emerald tint for subtle backgrounds
-        accent:           '#D5B38E',
-        accentMuted:      '#F5EDE3',   // Soft warm tint
+        primary: '#004437',
+        primaryMuted: '#E6F0ED',   // Very light emerald tint for subtle backgrounds
+        accent: '#D5B38E',
+        accentMuted: '#F5EDE3',   // Soft warm tint
 
         // Surfaces
-        background:       '#FAF8F5',   // Warm off-white (not clinical)
-        surface:          '#FFFFFF',
-        surfaceElevated:  '#FFFFFF',
-        card:             '#FFFFFF',
+        background: '#FAF8F5',   // Warm off-white (not clinical)
+        surface: '#FFFFFF',
+        surfaceElevated: '#FFFFFF',
+        card: '#FFFFFF',
 
         // Text
-        text:             '#1A1D21',
-        textSecondary:    '#4A5568',
-        textMuted:        '#9CA3AF',
-        textOnPrimary:    '#FFFFFF',
-        textOnAccent:     '#2D1F0E',
+        text: '#1A1D21',
+        textSecondary: '#4A5568',
+        textMuted: '#9CA3AF',
+        textOnPrimary: '#FFFFFF',
+        textOnAccent: '#2D1F0E',
 
         // Borders & Dividers
-        border:           '#E8E4DF',   // Warm gray border
-        borderFocused:    '#004437',
-        divider:          '#F0EDE8',
+        border: '#E8E4DF',   // Warm gray border
+        borderFocused: '#004437',
+        divider: '#F0EDE8',
 
         // Semantic
-        error:            '#DC3545',
-        errorBg:          '#FDF2F2',
-        errorMuted:       '#F8D7DA',
-        success:          '#059669',
-        successBg:        '#ECFDF5',
-        warning:          '#D97706',
-        warningBg:        '#FFFBEB',
-        info:             '#0284C7',
-        infoBg:           '#F0F9FF',
+        error: '#DC3545',
+        errorBg: '#FDF2F2',
+        errorMuted: '#F8D7DA',
+        success: '#059669',
+        successBg: '#ECFDF5',
+        warning: '#D97706',
+        warningBg: '#FFFBEB',
+        info: '#0284C7',
+        infoBg: '#F0F9FF',
 
         // Toast
-        toastBg:          '#1A1D21',
-        toastText:        '#FFFFFF',
+        toastBg: '#1A1D21',
+        toastText: '#FFFFFF',
 
         // Tab Bar
-        tabBarBg:         '#FFFFFF',
-        tabBarBorder:     '#F0EDE8',
-        tabActive:        '#004437',
-        tabInactive:      '#9CA3AF',
+        tabBarBg: '#FFFFFF',
+        tabBarBorder: '#F0EDE8',
+        tabActive: '#004437',
+        tabInactive: '#9CA3AF',
 
         // Misc
-        skeleton:         '#E8E4DF',
-        overlay:          'rgba(0, 0, 0, 0.4)',
-        shadow:           '#000000',
+        skeleton: '#E8E4DF',
+        overlay: 'rgba(0, 0, 0, 0.4)',
+        shadow: '#000000',
     }
 };
 
 export const darkTheme = {
     colors: {
-        // Core
-        primary:          '#00C896',   // Brighter emerald for dark bg contrast
-        primaryMuted:     '#0D2E26',   // Deep muted emerald
-        accent:           '#D5B38E',
-        accentMuted:      '#2A2218',
+        // Core (Minimalist with a subtle Indigo pop)
+        primary: '#818CF8',        // Soft, muted indigo for that "lil" differentiation
+        primaryMuted: '#1E1B4B',   // Deep, subtle indigo for secondary backgrounds
+        accent: '#A3A3A3',         // Keeping the accent neutral so it doesn't clash
+        accentMuted: '#171717',
 
-        // Surfaces
-        background:       '#0F1419',   // Rich charcoal
-        surface:          '#1A2332',   // Slate
-        surfaceElevated:  '#243044',
-        card:             '#1A2332',
+        // Surfaces (Keeping the true neutral darks)
+        background: '#0A0A0A',     // Deepest black-grey
+        surface: '#121212',
+        surfaceElevated: '#1E1E1E',
+        card: '#121212',
 
-        // Text
-        text:             '#F1F5F9',
-        textSecondary:    '#94A3B8',
-        textMuted:        '#64748B',
-        textOnPrimary:    '#0F1419',
-        textOnAccent:     '#2D1F0E',
+        // Text (Clean readability)
+        text: '#EDEDED',
+        textSecondary: '#A3A3A3',
+        textMuted: '#737373',
+        textOnPrimary: '#0A0A0A',  // Dark text on the indigo looks super sharp
+        textOnAccent: '#0A0A0A',
 
         // Borders & Dividers
-        border:           '#2A3544',
-        borderFocused:    '#00C896',
-        divider:          '#1E2D3D',
+        border: '#262626',
+        borderFocused: '#818CF8',  // Inputs/borders get the indigo highlight when focused
+        divider: '#1A1A1A',
 
-        // Semantic
-        error:            '#F87171',
-        errorBg:          '#2D1B1B',
-        errorMuted:       '#451A1A',
-        success:          '#34D399',
-        successBg:        '#0D2E26',
-        warning:          '#FBBF24',
-        warningBg:        '#2A2218',
-        info:             '#38BDF8',
-        infoBg:           '#0C2340',
+        // Semantic (Desaturated functional colors)
+        error: '#EF4444',
+        errorBg: '#2B1212',
+        errorMuted: '#451C1C',
+        success: '#22C55E',
+        successBg: '#0F291E',
+        warning: '#F59E0B',
+        warningBg: '#2B1D0F',
+        info: '#3B82F6',
+        infoBg: '#121E2B',
 
         // Toast
-        toastBg:          '#F1F5F9',
-        toastText:        '#0F1419',
+        toastBg: '#EDEDED',
+        toastText: '#0A0A0A',
 
         // Tab Bar
-        tabBarBg:         '#141D27',
-        tabBarBorder:     '#1E2D3D',
-        tabActive:        '#00C896',
-        tabInactive:      '#64748B',
+        tabBarBg: '#0A0A0A',
+        tabBarBorder: '#262626',
+        tabActive: '#818CF8',      // Active tab gets the subtle indigo
+        tabInactive: '#737373',
 
         // Misc
-        skeleton:         '#2A3544',
-        overlay:          'rgba(0, 0, 0, 0.6)',
-        shadow:           '#000000',
+        skeleton: '#1E1E1E',
+        overlay: 'rgba(0, 0, 0, 0.7)',
+        shadow: '#000000',
     }
 };
 
@@ -120,39 +120,39 @@ export const darkTheme = {
 
 export const typography = {
     fontFamily: {
-        regular:    'System',   // Falls back to SF Pro / Roboto natively
-        medium:     'System',
-        semibold:   'System',
-        bold:       'System',
+        regular: 'System',   // Falls back to SF Pro / Roboto natively
+        medium: 'System',
+        semibold: 'System',
+        bold: 'System',
     },
     fontSize: {
-        xs:    11,
-        sm:    13,
-        base:  15,
-        md:    16,
-        lg:    18,
-        xl:    20,
+        xs: 11,
+        sm: 13,
+        base: 15,
+        md: 16,
+        lg: 18,
+        xl: 20,
         '2xl': 24,
         '3xl': 30,
         '4xl': 36,
     },
     fontWeight: {
-        regular:  '400' as const,
-        medium:   '500' as const,
+        regular: '400' as const,
+        medium: '500' as const,
         semibold: '600' as const,
-        bold:     '700' as const,
-        black:    '800' as const,
+        bold: '700' as const,
+        black: '800' as const,
     },
     lineHeight: {
-        tight:  1.2,
+        tight: 1.2,
         normal: 1.5,
-        loose:  1.75,
+        loose: 1.75,
     },
     letterSpacing: {
-        tight:  -0.5,
+        tight: -0.5,
         normal: 0,
-        wide:   0.5,
-        wider:  1.0,
+        wide: 0.5,
+        wider: 1.0,
         widest: 1.5,
     }
 };
@@ -160,21 +160,21 @@ export const typography = {
 // ── Spacing & Radius ──────────────────────────────────────
 
 export const spacing = {
-    xs:  4,
-    sm:  8,
-    md:  16,
-    lg:  24,
-    xl:  32,
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
     '2xl': 40,
     '3xl': 48,
 };
 
 export const radius = {
-    xs:   4,
-    sm:   8,
-    md:   12,
-    lg:   16,
-    xl:   20,
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
     '2xl': 24,
     full: 9999,
 };
@@ -222,13 +222,13 @@ export const shadows = {
 // ── Animation Timing ──────────────────────────────────────
 
 export const animation = {
-    fast:      150,
-    normal:    300,
-    slow:      500,
+    fast: 150,
+    normal: 300,
+    slow: 500,
     spring: {
-        damping:   15,
+        damping: 15,
         stiffness: 150,
-        mass:      1,
+        mass: 1,
     },
 };
 
