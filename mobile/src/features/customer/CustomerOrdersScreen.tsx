@@ -13,6 +13,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiClient } from '../../shared/api/client';
 import { lightTheme, darkTheme, spacing, radius, typography, shadows } from '../../shared/theme';
 import { useThemeStore } from '../../shared/store/themeStore';
+import { useSocketStore } from '../../shared/store/useSocketStore';
+import { useToastStore } from '../../shared/store/toastStore';
 
 export const CustomerOrdersScreen = () => {
     const { isDarkMode } = useThemeStore();
@@ -21,6 +23,8 @@ export const CustomerOrdersScreen = () => {
 
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const { socket } = useSocketStore();
+    const showToast = useToastStore(state => state.show);
 
     const fetchOrders = async () => {
         try {
@@ -39,12 +43,29 @@ export const CustomerOrdersScreen = () => {
         }, [])
     );
 
+    // ── Real-time Listener ──
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleOrderUpdated = (data: any) => {
+            setOrders(prev => prev.map(o => o.id === data.order.id ? data.order : o));
+            showToast(data.message, 'success', () => {
+                navigation.navigate('Notifications');
+            });
+        };
+
+        socket.on('order_updated', handleOrderUpdated);
+        return () => {
+            socket.off('order_updated', handleOrderUpdated);
+        };
+    }, [socket]);
+
     const renderStatusBadge = (status: string) => {
         let color = theme.colors.textSecondary;
         let bg = theme.colors.surface;
         let label = status;
 
-        switch(status) {
+        switch (status) {
             case 'PENDING': color = '#F59E0B'; bg = '#FEF3C7'; label = 'Waiting for Shop'; break;
             case 'ACCEPTED': color = '#3B82F6'; bg = '#DBEAFE'; label = 'Preparing'; break;
             case 'READY_FOR_PICKUP': color = theme.colors.primary; bg = theme.colors.primaryMuted; label = 'Ready to Pickup'; break;
@@ -73,7 +94,7 @@ export const CustomerOrdersScreen = () => {
                     </View>
                     <Text style={[styles.orderTotal, { color: theme.colors.primary }]}>₹{item.totalAmount}</Text>
                 </View>
-                
+
                 <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
 
                 <Text style={[styles.itemsPreview, { color: theme.colors.textSecondary }]} numberOfLines={2}>
@@ -82,7 +103,7 @@ export const CustomerOrdersScreen = () => {
 
                 <View style={styles.orderFooter}>
                     {renderStatusBadge(item.status)}
-                    
+
                     {isActive && (
                         <View style={[styles.codeContainer, { borderColor: theme.colors.primary }]}>
                             <Text style={[styles.codeLabel, { color: theme.colors.textSecondary }]}>PIN:</Text>
@@ -117,7 +138,7 @@ export const CustomerOrdersScreen = () => {
                     <Text style={[styles.emptyDesc, { color: theme.colors.textSecondary }]}>
                         You haven't placed any orders. Start exploring local shops!
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.browseBtn, { backgroundColor: theme.colors.primary }]}
                         onPress={() => navigation.navigate('Search')}
                     >
@@ -152,7 +173,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     headerTitle: { fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold },
-    
+
     listContent: { padding: spacing.md },
     orderCard: {
         borderWidth: 1,
@@ -164,14 +185,14 @@ const styles = StyleSheet.create({
     shopName: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, marginBottom: 2 },
     dateText: { fontSize: typography.fontSize.xs },
     orderTotal: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold },
-    
+
     divider: { height: 1, marginVertical: spacing.sm },
     itemsPreview: { fontSize: typography.fontSize.sm, lineHeight: 20, marginBottom: spacing.md },
-    
+
     orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm },
     statusText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, textTransform: 'uppercase' },
-    
+
     codeContainer: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm, borderStyle: 'dashed' },
     codeLabel: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold },
     codeValue: { fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, letterSpacing: 2 },

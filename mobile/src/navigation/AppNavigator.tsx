@@ -2,15 +2,17 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '../shared/store/authStore';
 import { useThemeStore } from '../shared/store/themeStore';
+import { useSocketStore } from '../shared/store/useSocketStore';
 import { lightTheme, darkTheme, spacing, radius, typography, shadows } from '../shared/theme';
 import { apiClient } from '../shared/api/client';
 import { useState } from 'react';
+import { NotificationsScreen } from '../shared/components/NotificationsScreen';
 
 import { AuthScreen } from '../features/auth/AuthScreen';
 import { InventoryListScreen } from '../features/shop/InventoryListScreen';
@@ -26,6 +28,7 @@ import { CustomerSearchScreen } from '../features/customer/CustomerSearchScreen'
 import { ShopInventoryScreen } from '../features/customer/ShopInventoryScreen';
 import { CartScreen } from '../features/customer/CartScreen';
 import { CustomerOrdersScreen } from '../features/customer/CustomerOrdersScreen';
+import { GlobalCartBar } from '../shared/components/GlobalCartBar';
 // ─────────────────────────────────────────────────────────
 //  AppNavigator — Premium tab bar, themed skeletons,
 //  branded loading states
@@ -98,6 +101,15 @@ const CustomerSearchStack = () => {
 const CustomerTabs = () => {
     const { isDarkMode } = useThemeStore();
     const theme = isDarkMode ? darkTheme : lightTheme;
+    const lastTap = React.useRef<Record<string, number>>({});
+
+    const handleTabPress = (e: any, routeName: string) => {
+        const now = Date.now();
+        if (lastTap.current[routeName] && now - lastTap.current[routeName] < 300) {
+            DeviceEventEmitter.emit(`doubleTap_${routeName}`);
+        }
+        lastTap.current[routeName] = now;
+    };
 
     return (
         <Tab.Navigator
@@ -127,9 +139,23 @@ const CustomerTabs = () => {
                 },
             })}
         >
-            <Tab.Screen name="SearchTab" component={CustomerSearchStack} options={{ title: 'Explore' }} />
-            <Tab.Screen name="OrdersTab" component={CustomerOrdersScreen} options={{ title: 'Orders' }} />
-            <Tab.Screen name="SettingsTab" component={ShopkeeperSettings} options={{ title: 'Profile' }} />
+            <Tab.Screen 
+                name="SearchTab" 
+                component={CustomerSearchStack} 
+                options={{ title: 'Explore' }} 
+                listeners={{ tabPress: (e) => handleTabPress(e, 'SearchTab') }}
+            />
+            <Tab.Screen 
+                name="OrdersTab" 
+                component={CustomerOrdersScreen} 
+                options={{ title: 'Orders' }} 
+                listeners={{ tabPress: (e) => handleTabPress(e, 'OrdersTab') }}
+            />
+            <Tab.Screen 
+                name="SettingsTab" 
+                component={ShopkeeperSettings} 
+                options={{ title: 'Profile' }} 
+            />
         </Tab.Navigator>
     );
 };
@@ -243,6 +269,7 @@ const ShopkeeperRoot = () => {
 export const AppNavigator = () => {
     const { token, role } = useAuthStore();
     const { isDarkMode, loadPersistedTheme } = useThemeStore();
+    const { connect, disconnect } = useSocketStore();
     const theme = isDarkMode ? darkTheme : lightTheme;
 
     // Load persisted theme on mount
@@ -250,15 +277,31 @@ export const AppNavigator = () => {
         loadPersistedTheme();
     }, []);
 
+    // Manage socket connection lifecycle
+    useEffect(() => {
+        if (token) {
+            connect();
+        } else {
+            disconnect();
+        }
+        return () => disconnect();
+    }, [token]);
+
     return (
         <NavigationContainer>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
-                {token === null ? (
+                {!token ? (
                     <Stack.Screen name="Auth" component={AuthScreen} />
                 ) : role === 'SHOPKEEPER' ? (
-                    <Stack.Screen name="ShopkeeperMain" component={ShopkeeperRoot} />
+                    <>
+                        <Stack.Screen name="ShopkeeperMain" component={ShopkeeperRoot} />
+                        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ presentation: 'modal' }} />
+                    </>
                 ) : (
-                    <Stack.Screen name="CustomerMain" component={CustomerTabs} />
+                    <>
+                        <Stack.Screen name="CustomerMain" component={CustomerTabs} />
+                        <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ presentation: 'modal' }} />
+                    </>
                 )}
             </Stack.Navigator>
         </NavigationContainer>

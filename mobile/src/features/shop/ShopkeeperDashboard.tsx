@@ -9,6 +9,8 @@ import {
     Animated,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useThemeStore } from '../../shared/store/themeStore';
 import { lightTheme, darkTheme, spacing, radius, typography, shadows, animation } from '../../shared/theme';
 
@@ -21,6 +23,7 @@ import { lightTheme, darkTheme, spacing, radius, typography, shadows, animation 
 export const ShopkeeperDashboard = () => {
     const { isDarkMode, toggleTheme } = useThemeStore();
     const theme = isDarkMode ? darkTheme : lightTheme;
+    const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
     const [shopOpen, setShopOpen] = React.useState(true);
 
@@ -92,6 +95,14 @@ export const ShopkeeperDashboard = () => {
                             size={16}
                             color={isDarkMode ? '#FBBF24' : '#6366F1'}
                         />
+                    </TouchableOpacity>
+                    {/* Notifications */}
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Notifications')}
+                        style={[styles.themeToggle, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+                        activeOpacity={0.7}
+                    >
+                        <Feather name="bell" size={16} color={theme.colors.text} />
                     </TouchableOpacity>
                     <AvatarInitial />
                 </View>

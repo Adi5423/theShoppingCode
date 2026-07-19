@@ -86,7 +86,12 @@ export const Toast = () => {
         >
             <TouchableOpacity
                 activeOpacity={0.9}
-                onPress={hide}
+                onPress={() => {
+                    if (useToastStore.getState().onPress) {
+                        useToastStore.getState().onPress!();
+                    }
+                    hide();
+                }}
                 style={[
                     styles.toast,
                     {

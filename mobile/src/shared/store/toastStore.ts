@@ -10,7 +10,8 @@ interface ToastState {
     visible: boolean;
     message: string;
     type: ToastType;
-    show: (message: string, type?: ToastType) => void;
+    onPress?: () => void;
+    show: (message: string, type?: ToastType, onPress?: () => void) => void;
     hide: () => void;
 }
 
@@ -20,12 +21,13 @@ export const useToastStore = create<ToastState>((set) => ({
     visible: false,
     message: '',
     type: 'info',
+    onPress: undefined,
 
-    show: (message, type = 'info') => {
+    show: (message, type = 'info', onPress?: () => void) => {
         // Clear any existing timer
         if (dismissTimer) clearTimeout(dismissTimer);
 
-        set({ visible: true, message, type });
+        set({ visible: true, message, type, onPress });
 
         // Auto-dismiss after 3.5s
         dismissTimer = setTimeout(() => {

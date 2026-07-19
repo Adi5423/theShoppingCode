@@ -154,7 +154,7 @@ export const AuthScreen = () => {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={[styles.screen, { backgroundColor: theme.colors.background }]}
         >
             <ScrollView

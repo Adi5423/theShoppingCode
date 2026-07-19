@@ -6,7 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 //  server warmup support, and prod-grade error parsing
 // ─────────────────────────────────────────────────────────
 
-const BASE_URL = 'https://theshoppingcode.onrender.com/api';
+export const BASE_URL = 'https://theshoppingcode.onrender.com/api';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,

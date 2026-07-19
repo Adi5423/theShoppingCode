@@ -8,17 +8,21 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiClient } from '../../shared/api/client';
 import { lightTheme, darkTheme, spacing, radius, typography } from '../../shared/theme';
 import { useThemeStore } from '../../shared/store/themeStore';
 import { useToastStore } from '../../shared/store/toastStore';
+import { useSocketStore } from '../../shared/store/useSocketStore';
 import { Button } from '../../shared/components/Button';
 
 export const ShopkeeperOrders = () => {
     const { isDarkMode } = useThemeStore();
     const theme = isDarkMode ? darkTheme : lightTheme;
     const toast = useToastStore();
+    const { socket } = useSocketStore();
+    const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,6 +44,23 @@ export const ShopkeeperOrders = () => {
             fetchOrders();
         }, [])
     );
+
+    // ── Real-time Listener ──
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewOrder = (data: any) => {
+            setOrders(prev => [data.order, ...prev]);
+            toast.show(data.message, 'info', () => {
+                navigation.navigate('Notifications');
+            });
+        };
+
+        socket.on('new_order', handleNewOrder);
+        return () => {
+            socket.off('new_order', handleNewOrder);
+        };
+    }, [socket]);
 
     const updateStatus = async (orderId: string, newStatus: string) => {
         try {
@@ -155,6 +176,9 @@ export const ShopkeeperOrders = () => {
         <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
             <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.divider }]}>
                 <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Orders</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+                    <Feather name="bell" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
             </View>
 
             {orders.length === 0 ? (
@@ -191,6 +215,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
         paddingBottom: spacing.md,
         borderBottomWidth: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     headerTitle: { fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold },
     
