@@ -1,4 +1,4 @@
-# 🏪 TheShoppingCode — Hyperlocal Marketplace Monorepo
+# TheShoppingCode — Hyperlocal Marketplace Monorepo
 
 [![Tech Stack](https://img.shields.io/badge/Stack-TypeScript%20%7C%20React%20Native%20%7C%20Node.js%20%7C%20Postgres-004437?style=for-the-badge)](#-tech-specs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-D5B38E?style=for-the-badge)](LICENSE)
@@ -7,7 +7,7 @@ A production-grade, dual-sided hyperlocal commerce ecosystem linking local merch
 
 ---
 
-## 🗺️ Table of Contents
+## Table of Contents
 1. [System Architecture](#-system-architecture)
 2. [UI/UX & Design System](#-uiux--design-system)
 3. [Monorepo Directory Walkthrough](#-monorepo-directory-walkthrough)
@@ -18,7 +18,7 @@ A production-grade, dual-sided hyperlocal commerce ecosystem linking local merch
 
 ---
 
-## ⚡ Tech Specs
+## Tech Specs
 
 ### Client Side
 * **Framework**: React Native with **Expo SDK 57**
@@ -34,7 +34,7 @@ A production-grade, dual-sided hyperlocal commerce ecosystem linking local merch
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 The application is engineered as a clean TypeScript monorepo splitting the backend services and the mobile frontend.
 
@@ -82,7 +82,7 @@ The app utilizes a premium **"Deep Forest & Warm Sand"** color palette, replacin
 
 ---
 
-## 📂 Monorepo Directory Walkthrough
+## Monorepo Directory Walkthrough
 
 ```text
 hyperlocal-app/
@@ -148,7 +148,7 @@ hyperlocal-app/
 
 ---
 
-## 🗃️ Database Design & Schema
+## Database Design & Schema
 
 The Postgres data tier is modeled in [schema.prisma](file:///run/media/liveuser/Workspace/shoppingg/hyperlocal-app/backend/prisma/schema.prisma) using explicit relational references to capture and secure checkout workflows:
 
@@ -227,7 +227,7 @@ erDiagram
 
 ---
 
-## ⚙️ Core Engine Implementations
+## Core Engine Implementations
 
 ### 1. Unified Auth Gatekeeping
 - Indian phone number pattern checks (`/^\+91\d{10}$/`).
@@ -275,7 +275,7 @@ sequenceDiagram
 
 ---
 
-## 📡 API Reference Directory
+## API Reference Directory
 
 ### Authentication Routing
 
@@ -406,7 +406,7 @@ sequenceDiagram
 
 ---
 
-## 🚀 Local Environment Setup
+## Local Environment Setup
 
 ### Prerequisites
 - Node.js (v18.x or v20.x)
