@@ -14,6 +14,7 @@ import inventoryRoutes from './routes/inventory.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import shopRoutes from './routes/shop.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import { globalErrorHandler } from './middleware/error.middleware.js';
 
 // Load environment configurations
@@ -39,6 +40,9 @@ const authLimiter = rateLimit({
     max: 10, // Limit each IP to 10 login/register requests per window
     message: { error: "Too many login attempts. Please try again after 15 minutes." }
 });
+
+// Health check — no auth, no rate limit (used for server warmup)
+app.use('/api/health', healthRoutes);
 
 // Mount core API routes
 app.use('/api/auth', authLimiter, authRoutes); // Protected by limiter

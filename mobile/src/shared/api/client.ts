@@ -1,14 +1,19 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-// Point directly to the live Render API
+// ─────────────────────────────────────────────────────────
+//  API Client — Axios instance with JWT, timeout,
+//  server warmup support, and prod-grade error parsing
+// ─────────────────────────────────────────────────────────
+
 const BASE_URL = 'https://theshoppingcode.onrender.com/api';
 
 export const apiClient = axios.create({
     baseURL: BASE_URL,
+    timeout: 15000, // 15s timeout — generous for Render cold starts
     headers: {
         'Content-Type': 'application/json',
-        'Bypass-Tunnel-Reminder': 'true' // Tells Localtunnel this is an API, not a browser
+        'Bypass-Tunnel-Reminder': 'true',
     },
 });
 
@@ -24,25 +29,39 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         // 1. Forensic Developer Logging
-        console.error("\n[Axios Network Error]:", {
+        console.error('\n[API Error]:', {
             url: error.config?.url,
             message: error.message,
             code: error.code,
-            serverData: error.response?.data
+            status: error.response?.status,
+            serverData: error.response?.data,
         });
 
         // 2. User-Facing Error Parsing
-        let uiMessage = "A network error occurred. Please check your connection.";
+        let uiMessage = 'Something went wrong. Please try again.';
 
-        if (error.response) {
+        if (error.code === 'ECONNABORTED') {
+            // Timeout — likely server cold start
+            uiMessage = 'The server is waking up. Please try again in a moment.';
+        } else if (error.response) {
             // Server responded with a 4xx/5xx code
-            uiMessage = error.response.data?.error || "Server encountered an issue.";
+            const status = error.response.status;
+            const serverMsg = error.response.data?.error;
+
+            if (status === 401) {
+                uiMessage = 'Your session has expired. Please sign in again.';
+            } else if (status === 429) {
+                uiMessage = 'Too many requests. Please wait a moment.';
+            } else if (status >= 500) {
+                uiMessage = 'Server error. Our team has been notified.';
+            } else if (serverMsg) {
+                uiMessage = serverMsg;
+            }
         } else if (error.request) {
-            // Request fired, but no response (DNS failure, timeout, firewall block)
-            uiMessage = "Cannot reach the server. It might be offline.";
+            // Request fired, but no response (DNS failure, offline, etc.)
+            uiMessage = 'Cannot reach the server. Check your connection.';
         }
 
-        // Return a clean error string to the UI components
         return Promise.reject(new Error(uiMessage));
     }
 );
