@@ -55,6 +55,7 @@ jobs:
 
       - name: Build APK using EAS
         run: |
+          eas init --account ${{ secrets.EAS_ACCOUNT }} --non-interactive || true
           eas build \
             --platform android \
             --profile preview \
