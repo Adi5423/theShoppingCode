@@ -1,0 +1,41 @@
+name: Build Mobile APK
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: EAS Android Build
+    runs-on: ubuntu-latest
+
+    # This ensures all run commands execute inside your mobile folder
+    defaults:
+      run:
+        working-directory: ./mobile
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x' 
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action/setup-eas@v2
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build APK using EAS
+        run: eas build --platform android --profile preview --non-interactive
+        
