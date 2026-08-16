@@ -60,6 +60,5 @@ jobs:
             --profile preview \
             --non-interactive \
             --wait \
-            --verbose
         env:
           CI: true
