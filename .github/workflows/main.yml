@@ -13,6 +13,7 @@ jobs:
   build:
     name: EAS Android Build
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     # This ensures all run commands execute inside your mobile folder
     defaults:
@@ -26,17 +27,39 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x' 
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: './mobile/package-lock.json'
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+          expo-version: latest
+
+      - name: Verify Project Configuration
+        run: |
+          if [ ! -f "app.json" ]; then
+            echo "ERROR: app.json not found in mobile directory"
+            exit 1
+          fi
+          if [ ! -f "eas.json" ]; then
+            echo "ERROR: eas.json not found in mobile directory"
+            exit 1
+          fi
+          echo "✓ Project configuration verified"
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build APK using EAS
-        run: eas build --platform android --profile preview --non-interactive
-        
+        run: |
+          eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --wait \
+            --verbose
+        env:
+          CI: true
