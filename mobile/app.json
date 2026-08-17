@@ -6,9 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-
     "owner": "adii5423",
-
     "android": {
       "package": "com.adii5423.theshoppingcode",
       "adaptiveIcon": {
@@ -19,18 +17,20 @@
       },
       "predictiveBackGestureEnabled": false
     },
-
     "ios": {
       "supportsTablet": true
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "plugins": [
       "expo-secure-store",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d20d22fc-9952-42f7-881f-84c2536c52a1"
+      }
+    }
   }
 }
