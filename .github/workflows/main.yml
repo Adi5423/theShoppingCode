@@ -4,31 +4,33 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch: 
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: EAS Android Build
+    name: EAS Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
-    # This ensures all run commands execute inside your mobile folder
     defaults:
       run:
         working-directory: ./mobile
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
-          cache: 'npm'
+          node-version: '22.13.0'
+          cache: npm
           cache-dependency-path: './mobile/package-lock.json'
 
       - name: Setup Expo and EAS
@@ -36,30 +38,127 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-          expo-version: latest
 
       - name: Verify Project Configuration
         run: |
-          if [ ! -f "app.json" ]; then
-            echo "ERROR: app.json not found in mobile directory"
+          set -e
+
+          echo "Checking Expo project configuration..."
+
+          test -f package.json || {
+            echo "ERROR: mobile/package.json not found"
             exit 1
-          fi
-          if [ ! -f "eas.json" ]; then
-            echo "ERROR: eas.json not found in mobile directory"
+          }
+
+          test -f package-lock.json || {
+            echo "ERROR: mobile/package-lock.json not found"
             exit 1
-          fi
-          echo "✓ Project configuration verified"
+          }
+
+          test -f app.json || {
+            echo "ERROR: mobile/app.json not found"
+            exit 1
+          }
+
+          test -f eas.json || {
+            echo "ERROR: mobile/eas.json not found"
+            exit 1
+          }
+
+          echo "✓ package.json found"
+          echo "✓ package-lock.json found"
+          echo "✓ app.json found"
+          echo "✓ eas.json found"
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build APK using EAS
+      - name: Check EAS Project
+        id: eas_project
         run: |
-          eas init --account ${{ secrets.EAS_ACCOUNT }} --non-interactive || true
+          set -e
+
+          PROJECT_ID=$(node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            console.log(app.expo?.extra?.eas?.projectId || '');
+          ")
+
+          if [ -n "$PROJECT_ID" ]; then
+            echo "EAS project already linked."
+            echo "Project ID: $PROJECT_ID"
+            echo "linked=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No EAS projectId found."
+            echo "linked=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Initialize EAS Project Automatically
+        if: steps.eas_project.outputs.linked == 'false'
+        run: |
+          set -e
+
+          echo "Creating/linking EAS project automatically..."
+
+          eas init \
+            --account adii5423 \
+            --non-interactive
+
+          echo "EAS project initialization completed."
+
+      - name: Verify EAS Project ID
+        run: |
+          set -e
+
+          PROJECT_ID=$(node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            console.log(app.expo?.extra?.eas?.projectId || '');
+          ")
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "ERROR: EAS projectId was not generated."
+            exit 1
+          fi
+
+          echo "✓ EAS Project ID: $PROJECT_ID"
+
+      - name: Persist EAS Project Configuration
+        run: |
+          set -e
+
+          cd ..
+
+          if git diff --quiet -- mobile/app.json; then
+            echo "No app.json changes to commit."
+            exit 0
+          fi
+
+          echo "EAS initialization modified mobile/app.json."
+          echo "Persisting generated projectId to repository..."
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add mobile/app.json
+          git commit -m "chore: link Expo EAS project"
+
+          git push
+
+          echo "✓ EAS project configuration committed."
+
+      - name: Build Android APK
+        run: |
+          set -e
+
+          echo "Starting EAS Android APK build..."
+
           eas build \
             --platform android \
             --profile preview \
             --non-interactive \
-            --wait \
+            --wait
+
+          echo "✓ Android APK build completed."
         env:
           CI: true
