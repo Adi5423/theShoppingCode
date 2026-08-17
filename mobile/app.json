@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "TheShoppingCode",
+    "slug": "theshoppingcode",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
-    },
+
+    "owner": "adii5423",
+
     "android": {
+      "package": "com.adii5423.theshoppingcode",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -18,18 +19,18 @@
       },
       "predictiveBackGestureEnabled": false
     },
+
+    "ios": {
+      "supportsTablet": true
+    },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "plugins": [
       "expo-secure-store",
       "expo-status-bar"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "fb466136-eec1-4d3b-ae92-eaa16545bd55"
-      }
-    },
-    "owner": "adii5423"
+    ]
   }
 }
