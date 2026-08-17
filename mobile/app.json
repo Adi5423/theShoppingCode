@@ -24,6 +24,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fb466136-eec1-4d3b-ae92-eaa16545bd55"
+      }
+    },
+    "owner": "adii5423"
   }
 }
